@@ -1,6 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-anyview-docmod">
+    <comment>docmod document package</comment>
+    <glob pattern="*.docmod"/>
+    <sub-class-of type="application/zip"/>
+  </mime-type>
+  <mime-type type="application/x-anyview-doct">
+    <comment>docmod template package</comment>
+    <glob pattern="*.doct"/>
+    <sub-class-of type="application/zip"/>
+  </mime-type>
+  <mime-type type="application/x-iwork-keynote-sffkey">
+    <comment>Keynote presentation</comment>
+    <glob pattern="*.key"/>
+    <sub-class-of type="application/zip"/>
+  </mime-type>
+  <mime-type type="application/x-iwork-numbers-sffnumbers">
+    <comment>Numbers spreadsheet</comment>
+    <glob pattern="*.numbers"/>
+    <sub-class-of type="application/zip"/>
+  </mime-type>
+  <mime-type type="application/x-iwork-pages-sffpages">
+    <comment>Pages document</comment>
+    <glob pattern="*.pages"/>
+    <sub-class-of type="application/zip"/>
+  </mime-type>
+  <mime-type type="model/stl">
+    <comment>STL 3D model</comment>
+    <glob pattern="*.stl"/>
+  </mime-type>
+  <mime-type type="model/obj">
+    <comment>Wavefront OBJ 3D model</comment>
+    <glob pattern="*.obj"/>
+  </mime-type>
+  <mime-type type="model/vnd.usdz+zip">
+    <comment>USDZ 3D model package</comment>
+    <glob pattern="*.usdz"/>
+    <sub-class-of type="application/zip"/>
+  </mime-type>
+  <mime-type type="model/vnd.usd">
+    <comment>USD 3D model</comment>
+    <glob pattern="*.usd"/>
+  </mime-type>
+  <mime-type type="model/vnd.collada+xml">
+    <comment>COLLADA 3D model</comment>
+    <glob pattern="*.dae"/>
+    <sub-class-of type="application/xml"/>
+  </mime-type>
+  <mime-type type="font/ttf">
+    <comment>TrueType font</comment>
+    <glob pattern="*.ttf"/>
+  </mime-type>
+  <mime-type type="font/otf">
+    <comment>OpenType font</comment>
+    <glob pattern="*.otf"/>
+  </mime-type>
+  <mime-type type="font/collection">
+    <comment>TrueType font collection</comment>
+    <glob pattern="*.ttc"/>
+  </mime-type>
+  <mime-type type="text/vcard">
+    <comment>vCard contact</comment>
+    <glob pattern="*.vcf"/>
+  </mime-type>
+  <mime-type type="text/calendar">
+    <comment>iCalendar event</comment>
+    <glob pattern="*.ics"/>
+  </mime-type>
   <mime-type type="application/x-markdown">
+    <comment>Markdown document</comment>
+    <glob pattern="*.md"/>
+    <glob pattern="*.markdown"/>
+    <sub-class-of type="text/plain"/>
+  </mime-type>
+  <mime-type type="text/markdown">
     <comment>Markdown document</comment>
     <glob pattern="*.md"/>
     <glob pattern="*.markdown"/>

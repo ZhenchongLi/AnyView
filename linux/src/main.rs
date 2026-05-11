@@ -1,9 +1,13 @@
 mod app;
 mod docmod_cli;
 mod drop_target;
+mod fidelity;
 mod file_watcher;
+mod find_bar;
 mod image_renderer;
+mod libreoffice_cli;
 mod media_renderer;
+mod office_renderer;
 mod pdf_renderer;
 mod renderer;
 mod web_renderer;

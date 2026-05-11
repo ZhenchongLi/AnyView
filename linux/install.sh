@@ -18,7 +18,35 @@ echo "→ Installing to $PREFIX"
 install -d "$BIN_DIR" "$APP_DIR" "$ICON_DIR" "$MIME_DIR"
 
 install -m 0755 target/release/anyview "$BIN_DIR/anyview"
-install -m 0644 data/anyview.desktop "$APP_DIR/anyview.desktop"
+
+DESKTOP_FILE="$APP_DIR/anyview.desktop"
+install -m 0644 data/anyview.desktop "$DESKTOP_FILE"
+
+# GUI sessions do not always include ~/.local/bin in PATH. Use an absolute
+# Exec/TryExec in the installed desktop entry so file managers can discover
+# and launch the user-local app reliably.
+tmp_desktop="$(mktemp)"
+awk -v exec_path="$BIN_DIR/anyview %U" -v try_exec="$BIN_DIR/anyview" '
+    /^Exec=/ {
+        print "Exec=" exec_path
+        next
+    }
+    /^TryExec=/ {
+        print "TryExec=" try_exec
+        wrote_try_exec = 1
+        next
+    }
+    {
+        print
+    }
+    END {
+        if (!wrote_try_exec) {
+            print "TryExec=" try_exec
+        }
+    }
+' "$DESKTOP_FILE" > "$tmp_desktop"
+install -m 0644 "$tmp_desktop" "$DESKTOP_FILE"
+rm -f "$tmp_desktop"
 
 if [ -f data/anyview.svg ]; then
     install -m 0644 data/anyview.svg "$ICON_DIR/anyview.svg"

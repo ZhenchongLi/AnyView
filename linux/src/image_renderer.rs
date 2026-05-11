@@ -10,7 +10,9 @@ pub struct ImageRenderer {
 
 impl ImageRenderer {
     pub const fn extensions() -> &'static [&'static str] {
-        &["png", "jpg", "jpeg", "gif", "webp", "tiff", "tif", "bmp", "ico", "svg"]
+        &[
+            "png", "jpg", "jpeg", "gif", "webp", "tiff", "tif", "bmp", "ico", "svg", "heic", "heif",
+        ]
     }
 
     pub fn supports(ext: &str) -> bool {
