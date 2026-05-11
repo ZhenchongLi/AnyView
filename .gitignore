@@ -9,5 +9,5 @@ AnyView.app.zip
 # Rust / Linux build
 linux/target/
 
-# Local Claude Code session state
+# Local agent session state
 .claude/
