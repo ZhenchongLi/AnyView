@@ -3,6 +3,6 @@ import XCTest
 
 final class WordCommentHTMLTests: XCTestCase {
     func test_testTargetRuns() {
-        XCTAssertEqual(1, 2)
+        XCTAssertEqual(1, 1)
     }
 }
