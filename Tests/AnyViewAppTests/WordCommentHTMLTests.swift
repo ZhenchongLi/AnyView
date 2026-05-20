@@ -56,6 +56,25 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #5 (issue #9): the `.docmod`/`.doct` path must fetch
+    // a comment-bearing document from a docmod command other than `render`,
+    // which strips comments. The argument list comes from a function; this test
+    // asserts that list is NOT `["render", <path>]` and reads with `"read"`.
+    func test_docmodReadArguments_notRender() {
+        let path = "/tmp/example.docmod"
+        let args = DocmodCLI.docmodReadArguments(path: path)
+        XCTAssertNotEqual(
+            args,
+            ["render", path],
+            "docmodReadArguments must not invoke `render`, which strips comments from the document"
+        )
+        XCTAssertEqual(
+            args.first,
+            "read",
+            "docmodReadArguments must fetch the comment-bearing document via the `read` subcommand"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
