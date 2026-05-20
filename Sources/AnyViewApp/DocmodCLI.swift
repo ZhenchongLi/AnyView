@@ -71,6 +71,46 @@ enum DocmodCLI {
         ["read", path]
     }
 
+    /// Run `docmod read <filePath>` and return the comment-bearing HTML.
+    ///
+    /// Unlike `render`, the `read` subcommand preserves comment authors and
+    /// text. It prints a JSON envelope (top-level keys `status`, `command`,
+    /// `input`, `html`, `summary`) rather than raw HTML, so this parses the
+    /// envelope and returns the `html` field.
+    static func readHTML(filePath: String) throws -> String {
+        guard let docmodPath = findDocmod() else {
+            throw CLIError.notFound
+        }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: docmodPath)
+        process.arguments = docmodReadArguments(path: filePath)
+
+        let stdout = Pipe()
+        let stderr = Pipe()
+        process.standardOutput = stdout
+        process.standardError = stderr
+
+        try process.run()
+
+        // Read pipes before waitUntilExit to avoid deadlock when output exceeds pipe buffer
+        let outData = stdout.fileHandleForReading.readDataToEndOfFile()
+        let errData = stderr.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        if process.terminationStatus != 0 {
+            let errString = String(data: errData, encoding: .utf8) ?? "Unknown error"
+            throw CLIError.executionFailed(errString)
+        }
+
+        guard let envelope = try? JSONSerialization.jsonObject(with: outData) as? [String: Any],
+              let html = envelope["html"] as? String else {
+            throw CLIError.executionFailed("Could not read `html` field from docmod read output")
+        }
+
+        return html
+    }
+
     /// Run `docmod render <filePath>` and return the HTML output.
     static func render(filePath: String) throws -> String {
         guard let docmodPath = findDocmod() else {
