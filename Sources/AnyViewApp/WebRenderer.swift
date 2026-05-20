@@ -1626,7 +1626,8 @@ class WebRenderer: NSObject, ViewerRenderer, SupportsFind, SupportsFidelity, WKN
     private func loadDocmodContent(_ filePath: String, extractedDir: String) {
         let html: String
         do {
-            html = try DocmodCLI.readHTML(filePath: filePath)
+            let readHTML = try DocmodCLI.readHTML(filePath: filePath)
+            html = transformDocmodComments(html: readHTML)
         } catch let error as DocmodCLI.CLIError {
             showError(error.errorDescription ?? "docmod not found")
             return
@@ -1655,7 +1656,9 @@ class WebRenderer: NSObject, ViewerRenderer, SupportsFind, SupportsFidelity, WKN
         let sourceDocx = extractedDir + "/source.docx"
         let renderTarget = fm.fileExists(atPath: sourceDocx) ? sourceDocx : filePath
         do {
-            documentPreview = try DocmodCLI.readHTML(filePath: renderTarget)
+            documentPreview = transformDocmodComments(
+                html: try DocmodCLI.readHTML(filePath: renderTarget)
+            )
             if let bodyStart = documentPreview.range(of: "<body>"),
                let bodyEnd = documentPreview.range(of: "</body>") {
                 documentPreview = String(documentPreview[bodyStart.upperBound..<bodyEnd.lowerBound])
