@@ -119,9 +119,10 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
                 await docx.renderAsync(new Blob([newBytes], { type: MIME }), container, null, opts);
                 moveCommentNodesToRail(container);
                 status.textContent = '数学公式已转为占位符';
+                setTimeout(function() { status.textContent = ''; }, 3000);
             } catch (e2) {
                 status.className = 'error';
-                status.textContent = '无法渲染文档';
+                status.textContent = '渲染失败: ' + (e2 && e2.message ? e2.message : e2);
             }
         }
     })();
