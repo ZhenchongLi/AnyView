@@ -75,6 +75,44 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #5 (issue #9), behavioral half: the `.docmod`/`.doct`
+    // production paths must obtain their HTML from the comment-bearing `read`
+    // invocation, NOT from `DocmodCLI.render` (i.e. `["render", <path>]`), which
+    // strips comments. `loadDocmodContent`/`loadDoctContent` write straight to a
+    // WKWebView, so the only observable seam from a unit test is the production
+    // source itself: neither method may call `DocmodCLI.render`; both must route
+    // through the read path so comment authors and text reach the web view.
+    func test_loadDocmodAndDoctContent_useReadNotRender() throws {
+        let source = try String(
+            contentsOf: webRendererSourceURL(),
+            encoding: .utf8
+        )
+        let docmodBody = try XCTUnwrap(
+            functionBody(named: "loadDocmodContent", in: source),
+            "Could not locate the loadDocmodContent function body in WebRenderer.swift"
+        )
+        let doctBody = try XCTUnwrap(
+            functionBody(named: "loadDoctContent", in: source),
+            "Could not locate the loadDoctContent function body in WebRenderer.swift"
+        )
+        XCTAssertFalse(
+            docmodBody.contains("DocmodCLI.render"),
+            "loadDocmodContent must not call DocmodCLI.render, which strips comments; it must fetch the comment-bearing document via the read path"
+        )
+        XCTAssertFalse(
+            doctBody.contains("DocmodCLI.render"),
+            "loadDoctContent must not call DocmodCLI.render, which strips comments; it must fetch the comment-bearing document via the read path"
+        )
+        XCTAssertTrue(
+            docmodBody.contains("DocmodCLI.readHTML"),
+            "loadDocmodContent must obtain its HTML from the read path (DocmodCLI.readHTML) so comments reach the web view"
+        )
+        XCTAssertTrue(
+            doctBody.contains("DocmodCLI.readHTML"),
+            "loadDoctContent must obtain its HTML from the read path (DocmodCLI.readHTML) so comments reach the web view"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
@@ -91,7 +129,12 @@ final class WordCommentHTMLTests: XCTestCase {
 
     /// Returns the brace-balanced body of `loadDocxContent`, or nil if absent.
     private func loadDocxContentBody(in source: String) -> String? {
-        guard let signatureRange = source.range(of: "func loadDocxContent(") else {
+        functionBody(named: "loadDocxContent", in: source)
+    }
+
+    /// Returns the brace-balanced body of the named function, or nil if absent.
+    private func functionBody(named name: String, in source: String) -> String? {
+        guard let signatureRange = source.range(of: "func \(name)(") else {
             return nil
         }
         guard let openBrace = source.range(of: "{", range: signatureRange.upperBound..<source.endIndex) else {
