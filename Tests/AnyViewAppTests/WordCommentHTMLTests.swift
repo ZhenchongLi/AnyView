@@ -56,6 +56,49 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #4 (issue #9): a function transforms docmod read HTML
+    // that carries an `<aside data-type="comments">` block into HTML that places
+    // each comment in a right-side sidebar. Given one comment whose `<aside>`
+    // entry has `data-id="cm1"`, author `AI`, and a known text, plus a body run
+    // wrapped in `<mark data-id="cm1">`, the returned HTML must contain a sidebar
+    // container holding that author and that text, associated with the `cm1`
+    // anchor. The input is a fixed string modeled on real `docmod read` output.
+    func test_transformDocmodComments_placesCommentInSidebar() {
+        let input = """
+        <body>
+        <article>
+        <p data-id="6C9CC7BC" data-pstyle="Normal">
+          This is a paragraph with some
+          <mark data-id="cm1">annotated</mark>
+          text in it.
+        </p>
+        </article>
+        <aside data-type="comments">
+          <p data-id="cm1" data-author="AI" data-date="2024-01-01T00:00:00Z">Consider rewording this phrase.</p>
+        </aside>
+        </body>
+        """
+
+        let output = transformDocmodComments(html: input)
+
+        XCTAssertTrue(
+            output.contains("docmod-comments-rail"),
+            "Expected the transformed HTML to contain a right-side sidebar container"
+        )
+        XCTAssertTrue(
+            output.contains("AI"),
+            "Expected the sidebar to carry the comment author 'AI'"
+        )
+        XCTAssertTrue(
+            output.contains("Consider rewording this phrase."),
+            "Expected the sidebar to carry the comment text"
+        )
+        XCTAssertTrue(
+            output.contains("cm1"),
+            "Expected the sidebar card to be associated with the cm1 anchor"
+        )
+    }
+
     // Acceptance criterion #5 (issue #9): the `.docmod`/`.doct` path must fetch
     // a comment-bearing document from a docmod command other than `render`,
     // which strips comments. The argument list comes from a function; this test
