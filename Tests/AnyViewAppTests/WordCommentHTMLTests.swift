@@ -141,6 +141,38 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Issue #9 doct-chrome regression: on the `.doct` path the comment
+    // `<aside>` block (with its injected `<style>`) is sliced out of
+    // `<body>...</body>` and dropped into `buildDoctHtml`'s `.preview-frame`.
+    // A global `body { margin-right: 280px }` rule inside that block then shifts
+    // the entire doct page (header + metadata + preview), not just the preview.
+    // The comment rail CSS must scope to its own elements and must NOT emit a
+    // global `body` selector that mutates whatever page embeds the transformed
+    // HTML.
+    func test_transformDocmodComments_doesNotShiftEmbeddingBody() {
+        let input = """
+        <body>
+        <article>
+        <p data-id="6C9CC7BC" data-pstyle="Normal">
+          This is a paragraph with some
+          <mark data-id="cm1">annotated</mark>
+          text in it.
+        </p>
+        </article>
+        <aside data-type="comments">
+          <p data-id="cm1" data-author="AI" data-date="2024-01-01T00:00:00Z">Consider rewording this phrase.</p>
+        </aside>
+        </body>
+        """
+
+        let output = transformDocmodComments(html: input)
+
+        XCTAssertFalse(
+            output.contains("body { margin-right"),
+            "The comment rail must not inject a global `body { margin-right }` rule; on the .doct path that rule is sliced into the doct viewer and shifts the entire doct page, not just the comment preview"
+        )
+    }
+
     // Acceptance criterion #5 (issue #9): the `.docmod`/`.doct` path must fetch
     // a comment-bearing document from a docmod command other than `render`,
     // which strips comments. The argument list comes from a function; this test
