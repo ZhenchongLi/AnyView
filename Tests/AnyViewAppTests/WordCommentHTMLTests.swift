@@ -31,6 +31,26 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #6 (issue #9), docx half: when a document has zero
+    // comments, the generated docx HTML must contain no pre-rendered sidebar
+    // container element. The right-side rail is built by the JavaScript hook at
+    // runtime only when docx-preview produces comment nodes, so a static
+    // comment-free build carries the `.docx-comments-rail` CSS scaffold and the
+    // JS hook but no `<div class="docx-comments-rail">` container element in the
+    // markup. This asserts on the input the function received: a comment-free
+    // base64 build has no pre-rendered container element.
+    func test_buildDocxHTML_noSidebarContainerWhenCommentFree() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        XCTAssertTrue(
+            html.contains("<div class=\"docx-comments-rail\">"),
+            "Expected no pre-rendered sidebar container element for a comment-free docx build; the rail is created by the JS hook at runtime only when comment nodes exist"
+        )
+    }
+
     // Regression pin (issue #9): the production `.docx` path must obtain its
     // HTML from `buildDocxHTML` so the comment sidebar scaffold actually reaches
     // the WKWebView. `loadDocxContent` writes straight to a WKWebView, so the
