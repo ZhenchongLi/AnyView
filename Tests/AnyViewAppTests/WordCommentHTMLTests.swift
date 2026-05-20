@@ -220,7 +220,7 @@ final class WordCommentHTMLTests: XCTestCase {
 
         let output = transformDocmodComments(html: input)
 
-        XCTAssertTrue(
+        XCTAssertFalse(
             output.contains("docmod-comments-rail"),
             "Expected no sidebar container for a comment-free docmod input; transformDocmodComments must return the input unchanged when there is no <aside data-type=\"comments\"> block"
         )
