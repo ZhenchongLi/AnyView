@@ -46,6 +46,17 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
         @font-face { font-family: '等线'; font-weight: bold; src: local('PingFang SC Semibold'); }
         @font-face { font-family: 'DengXian'; font-weight: normal; src: local('PingFang SC'); }
         @font-face { font-family: 'DengXian'; font-weight: bold; src: local('PingFang SC Semibold'); }
+        /* Right-side comment rail: only present in the DOM once the JS hook
+           finds docx-preview comment nodes and moves them in. */
+        .docx-comments-rail { position: fixed; top: 0; right: 0; bottom: 0;
+                              width: 280px; overflow-y: auto; z-index: 50;
+                              padding: 24px 16px; box-sizing: border-box;
+                              background: #f3f4f6;
+                              border-left: 1px solid rgba(0,0,0,0.1);
+                              font: 13px -apple-system, sans-serif; }
+        .docx-comments-rail > * { background: #fff; border-radius: 6px;
+                                  padding: 10px 12px; margin-bottom: 12px;
+                                  box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     </style>
     <script>\(jszipScript)</script>
     <script>\(docxPreviewScript)</script>
@@ -54,6 +65,22 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
     <div id="status">加载中…</div>
     <div id="container"></div>
     <script>
+    // Move the comment nodes docx-preview rendered into a right-side rail.
+    // Builds no rail and no container when there are no comment nodes.
+    function moveCommentNodesToRail(container) {
+        var nodes = container.querySelectorAll(
+            '.docx-comment, [class*="comment"], .docx-comments > *');
+        if (!nodes || nodes.length === 0) return;
+        var rail = document.querySelector('.docx-comments-rail');
+        if (!rail) {
+            rail = document.createElement('div');
+            rail.className = 'docx-comments-rail';
+            document.body.appendChild(rail);
+        }
+        for (var i = 0; i < nodes.length; i++) {
+            rail.appendChild(nodes[i]);
+        }
+    }
     (async function() {
         var status = document.getElementById('status');
         var container = document.getElementById('container');
@@ -71,6 +98,7 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
         };
         try {
             await docx.renderAsync(new Blob([bytes], { type: MIME }), container, null, opts);
+            moveCommentNodesToRail(container);
             status.textContent = '';
         } catch (e1) {
             // Retry after stripping OMML math (common pandoc-generated docx issue)
@@ -89,6 +117,7 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
                 var newBytes = await zip.generateAsync({ type: 'uint8array' });
                 container.innerHTML = '';
                 await docx.renderAsync(new Blob([newBytes], { type: MIME }), container, null, opts);
+                moveCommentNodesToRail(container);
                 status.textContent = '数学公式已转为占位符';
             } catch (e2) {
                 status.className = 'error';
