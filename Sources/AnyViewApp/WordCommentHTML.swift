@@ -173,18 +173,23 @@ func transformDocmodComments(html: String) -> String {
     let rail = """
     <aside class="docmod-comments-rail" data-type="comments">
     <style>
-        .docmod-comments-rail { position: fixed; top: 0; right: 0; bottom: 0;
-                                width: 280px; overflow-y: auto; z-index: 50;
-                                padding: 24px 16px; box-sizing: border-box;
+        /* Self-scoped right-side rail: a right-floated, fixed-width column.
+           It does not pin to the viewport and emits no global `body` selector,
+           so when the .doct path slices this block into its `.preview-frame`
+           the rail stays contained in that frame instead of covering the doct
+           header/metadata or shifting the whole doct page. */
+        .docmod-comments-rail { float: right; width: 280px; margin-left: 24px;
+                                box-sizing: border-box; padding: 16px;
                                 background: #f3f4f6;
-                                border-left: 1px solid rgba(0,0,0,0.1);
+                                border: 1px solid rgba(0,0,0,0.1);
+                                border-radius: 8px;
                                 font: 13px -apple-system, sans-serif; }
         .docmod-comment-card { background: #fff; border-radius: 6px;
                                padding: 10px 12px; margin-bottom: 12px;
                                box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .docmod-comment-card:last-child { margin-bottom: 0; }
         .docmod-comment-author { font-weight: 600; margin-bottom: 4px; }
         .docmod-comment-text { white-space: pre-wrap; }
-        body { margin-right: 280px; }
     </style>
     \(cards)
     </aside>
