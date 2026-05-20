@@ -201,6 +201,31 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #6 (issue #9), docmod half: when docmod read HTML
+    // carries no `<aside data-type="comments">` block, `transformDocmodComments`
+    // returns the input unchanged with no sidebar container. This is the docmod
+    // counterpart to test_buildDocxHTML_noSidebarContainerWhenCommentFree: a
+    // comment-free input on the docmod path must not gain a
+    // `docmod-comments-rail` container.
+    func test_transformDocmodComments_noSidebarWhenNoAside() {
+        let input = """
+        <body>
+        <article>
+        <p data-id="6C9CC7BC" data-pstyle="Normal">
+          This is a plain paragraph with no comments at all.
+        </p>
+        </article>
+        </body>
+        """
+
+        let output = transformDocmodComments(html: input)
+
+        XCTAssertTrue(
+            output.contains("docmod-comments-rail"),
+            "Expected no sidebar container for a comment-free docmod input; transformDocmodComments must return the input unchanged when there is no <aside data-type=\"comments\"> block"
+        )
+    }
+
     // Acceptance criterion #5 (issue #9): the `.docmod`/`.doct` path must fetch
     // a comment-bearing document from a docmod command other than `render`,
     // which strips comments. The argument list comes from a function; this test
