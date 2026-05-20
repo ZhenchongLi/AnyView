@@ -51,6 +51,28 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #7 (issue #9): the existing comment-free docx
+    // rendering is preserved. The generated docx HTML must still contain the
+    // `docx.renderAsync` call that drives docx-preview, and the CJK `@font-face`
+    // block that maps Windows fonts (e.g. SimSun) to macOS equivalents. This is
+    // a regression pin: both substrings are part of the production HTML today,
+    // so the test exists to catch a future edit that drops either one.
+    func test_buildDocxHTML_preservesRenderAsyncAndCJKFonts() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        XCTAssertTrue(
+            html.contains("docx.renderAsync"),
+            "Expected docx HTML to preserve the docx.renderAsync call that drives docx-preview rendering"
+        )
+        XCTAssertTrue(
+            html.contains("font-family: 'NonexistentFont'"),
+            "Expected docx HTML to preserve the CJK @font-face block mapping Windows fonts to macOS fonts"
+        )
+    }
+
     // Regression pin (issue #9): the production `.docx` path must obtain its
     // HTML from `buildDocxHTML` so the comment sidebar scaffold actually reaches
     // the WKWebView. `loadDocxContent` writes straight to a WKWebView, so the
