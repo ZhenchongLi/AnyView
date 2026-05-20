@@ -64,6 +64,13 @@ enum DocmodCLI {
         return nil
     }
 
+    /// Argument list for fetching a comment-bearing document. Unlike `render`,
+    /// which strips comments, the `read` subcommand preserves comment authors
+    /// and text so they can reach the web view.
+    static func docmodReadArguments(path: String) -> [String] {
+        ["read", path]
+    }
+
     /// Run `docmod render <filePath>` and return the HTML output.
     static func render(filePath: String) throws -> String {
         guard let docmodPath = findDocmod() else {
