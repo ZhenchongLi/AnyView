@@ -130,3 +130,132 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
     </html>
     """
 }
+
+/// Transforms `docmod read` HTML into HTML that places each comment in a
+/// right-side sidebar.
+///
+/// `docmod read` emits comments as a plain `<aside data-type="comments">` block
+/// at the bottom of the document body, with each entry shaped like
+/// `<p data-id="cmN" data-author="..." data-date="...">text</p>`, plus inline
+/// `<mark data-id="cmN">` anchors in the body. Left untouched, that block dumps
+/// the author and text inline under the document text. This function pulls each
+/// comment out of the `<aside>` block and rebuilds it as a card inside a
+/// right-side sidebar container (`docmod-comments-rail`), each card carrying the
+/// author and text and tied to its anchor id.
+///
+/// When the input has no `<aside data-type="comments">` block, the HTML is
+/// returned unchanged, with no sidebar container.
+///
+/// The transform is intentionally string-based: docmod's read HTML has a
+/// predictable shape, and a read-only display does not warrant pulling in an
+/// XML parser. If a future docmod version changes the `<aside>`/`<mark>` shape,
+/// this returns the document with no sidebar rather than failing loudly.
+func transformDocmodComments(html: String) -> String {
+    guard let asideRange = rangeOfCommentsAside(in: html) else {
+        return html
+    }
+
+    let asideBlock = String(html[asideRange])
+    let comments = parseDocmodComments(in: asideBlock)
+    guard !comments.isEmpty else {
+        return html
+    }
+
+    let cards = comments.map { comment -> String in
+        """
+        <div class="docmod-comment-card" data-comment-id="\(htmlEscape(comment.id))">
+          <div class="docmod-comment-author">\(htmlEscape(comment.author))</div>
+          <div class="docmod-comment-text">\(htmlEscape(comment.text))</div>
+        </div>
+        """
+    }.joined(separator: "\n")
+
+    let rail = """
+    <aside class="docmod-comments-rail" data-type="comments">
+    <style>
+        .docmod-comments-rail { position: fixed; top: 0; right: 0; bottom: 0;
+                                width: 280px; overflow-y: auto; z-index: 50;
+                                padding: 24px 16px; box-sizing: border-box;
+                                background: #f3f4f6;
+                                border-left: 1px solid rgba(0,0,0,0.1);
+                                font: 13px -apple-system, sans-serif; }
+        .docmod-comment-card { background: #fff; border-radius: 6px;
+                               padding: 10px 12px; margin-bottom: 12px;
+                               box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .docmod-comment-author { font-weight: 600; margin-bottom: 4px; }
+        .docmod-comment-text { white-space: pre-wrap; }
+        body { margin-right: 280px; }
+    </style>
+    \(cards)
+    </aside>
+    """
+
+    // Replace the original plain `<aside>` block with the sidebar rail.
+    return html.replacingCharacters(in: asideRange, with: rail)
+}
+
+/// A single comment parsed out of the `<aside data-type="comments">` block.
+private struct DocmodComment {
+    let id: String
+    let author: String
+    let text: String
+}
+
+/// Returns the range covering the whole `<aside data-type="comments"> ... </aside>`
+/// block in `html`, or nil if there is none.
+private func rangeOfCommentsAside(in html: String) -> Range<String.Index>? {
+    guard let openStart = html.range(of: "<aside data-type=\"comments\"") else {
+        return nil
+    }
+    guard let openTagEnd = html.range(of: ">", range: openStart.upperBound..<html.endIndex) else {
+        return nil
+    }
+    guard let closeRange = html.range(of: "</aside>", range: openTagEnd.upperBound..<html.endIndex) else {
+        return nil
+    }
+    return openStart.lowerBound..<closeRange.upperBound
+}
+
+/// Parses each `<p data-id=... data-author=...>text</p>` entry inside the
+/// `<aside>` block into a `DocmodComment`.
+private func parseDocmodComments(in asideBlock: String) -> [DocmodComment] {
+    var comments: [DocmodComment] = []
+    var searchStart = asideBlock.startIndex
+
+    while let pOpenStart = asideBlock.range(of: "<p", range: searchStart..<asideBlock.endIndex),
+          let pOpenEnd = asideBlock.range(of: ">", range: pOpenStart.upperBound..<asideBlock.endIndex),
+          let pCloseStart = asideBlock.range(of: "</p>", range: pOpenEnd.upperBound..<asideBlock.endIndex) {
+
+        let openTag = String(asideBlock[pOpenStart.lowerBound..<pOpenEnd.upperBound])
+        let text = String(asideBlock[pOpenEnd.upperBound..<pCloseStart.lowerBound])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let id = attributeValue("data-id", in: openTag),
+           let author = attributeValue("data-author", in: openTag) {
+            comments.append(DocmodComment(id: id, author: author, text: text))
+        }
+
+        searchStart = pCloseStart.upperBound
+    }
+
+    return comments
+}
+
+/// Extracts the value of `attribute="..."` from a tag string, or nil.
+private func attributeValue(_ attribute: String, in tag: String) -> String? {
+    guard let attrRange = tag.range(of: "\(attribute)=\"") else {
+        return nil
+    }
+    guard let closeQuote = tag.range(of: "\"", range: attrRange.upperBound..<tag.endIndex) else {
+        return nil
+    }
+    return String(tag[attrRange.upperBound..<closeQuote.lowerBound])
+}
+
+/// Minimal HTML text escaping for content placed into the sidebar cards.
+private func htmlEscape(_ s: String) -> String {
+    s.replacingOccurrences(of: "&", with: "&amp;")
+     .replacingOccurrences(of: "<", with: "&lt;")
+     .replacingOccurrences(of: ">", with: "&gt;")
+     .replacingOccurrences(of: "\"", with: "&quot;")
+}
