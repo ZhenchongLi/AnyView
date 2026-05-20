@@ -98,6 +98,34 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Regression pin (issue #9, Review Real issue 2): the move of the docx HTML
+    // into `buildDocxHTML` was sold as a pure extraction but dropped two
+    // user-visible behaviors that trunk's inline string had. (1) On a render
+    // failure the trunk surfaced the exception detail ('渲染失败: ' + message),
+    // not a fixed message with no detail; a user who hits a failure must still
+    // see what went wrong. (2) After the math fallback succeeded the banner was
+    // cleared on a timer (`setTimeout(... 3000)`) instead of being pinned to the
+    // screen for the life of the view. Both behaviors must survive the refactor.
+    func test_buildDocxHTML_surfacesErrorDetailAndClearsMathFallbackBanner() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        XCTAssertTrue(
+            html.contains("渲染失败: "),
+            "Expected the docx HTML to surface the exception detail on render failure ('渲染失败: ' + message), not a fixed message with no detail"
+        )
+        XCTAssertTrue(
+            html.contains("e2.message ? e2.message : e2"),
+            "Expected the render-failure handler to include the exception's message text so the user sees what went wrong"
+        )
+        XCTAssertTrue(
+            html.contains("setTimeout(function() { status.textContent = ''; }, 3000)"),
+            "Expected the math-fallback banner to clear after a 3-second timeout rather than staying pinned for the life of the view"
+        )
+    }
+
     // Acceptance criterion #4 (issue #9): a function transforms docmod read HTML
     // that carries an `<aside data-type="comments">` block into HTML that places
     // each comment in a right-side sidebar. Given one comment whose `<aside>`
