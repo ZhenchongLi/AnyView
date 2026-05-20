@@ -14,5 +14,10 @@ let package = Package(
             exclude: ["Info.plist"],
             resources: [.process("Resources")]
         ),
+        .testTarget(
+            name: "AnyViewAppTests",
+            dependencies: ["AnyViewApp"],
+            path: "Tests/AnyViewAppTests"
+        ),
     ]
 )
