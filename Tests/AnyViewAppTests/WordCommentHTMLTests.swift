@@ -45,7 +45,7 @@ final class WordCommentHTMLTests: XCTestCase {
             jszipScript: "/* stub jszip */",
             docxPreviewScript: "/* stub docx-preview */"
         )
-        XCTAssertTrue(
+        XCTAssertFalse(
             html.contains("<div class=\"docx-comments-rail\">"),
             "Expected no pre-rendered sidebar container element for a comment-free docx build; the rail is created by the JS hook at runtime only when comment nodes exist"
         )
