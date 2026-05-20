@@ -68,7 +68,7 @@ final class WordCommentHTMLTests: XCTestCase {
             "Expected docx HTML to preserve the docx.renderAsync call that drives docx-preview rendering"
         )
         XCTAssertTrue(
-            html.contains("font-family: 'NonexistentFont'"),
+            html.contains("font-family: 'SimSun'"),
             "Expected docx HTML to preserve the CJK @font-face block mapping Windows fonts to macOS fonts"
         )
     }
