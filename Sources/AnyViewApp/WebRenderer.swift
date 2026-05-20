@@ -1477,100 +1477,11 @@ class WebRenderer: NSObject, ViewerRenderer, SupportsFind, SupportsFidelity, WKN
         }
         let base64 = data.base64EncodedString()
 
-        let html = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-        <meta charset="UTF-8">
-        <meta name="color-scheme" content="light">
-        <style>
-            * { box-sizing: border-box; }
-            html, body { margin: 0; padding: 0; background: #e5e7eb; }
-            #container { padding: 24px 0; min-height: 100vh; }
-            .docx-wrapper { background: transparent !important; padding: 0 !important; }
-            .docx-wrapper > section.docx { box-shadow: 0 2px 8px rgba(0,0,0,0.12); margin: 0 auto 16px; }
-            #status { position: fixed; top: 12px; right: 16px; z-index: 9999;
-                      padding: 6px 12px; font: 12px -apple-system, sans-serif;
-                      background: rgba(0,0,0,0.7); color: #fff; border-radius: 4px;
-                      backdrop-filter: blur(8px); }
-            #status:empty { display: none; }
-            #status.error { background: #b91c1c; }
-            /* Map Windows CJK fonts to macOS equivalents (normal + bold) */
-            @font-face { font-family: '宋体'; font-weight: normal; src: local('STSong-Light'), local('STSong'); }
-            @font-face { font-family: '宋体'; font-weight: bold; src: local('STSong'); }
-            @font-face { font-family: 'SimSun'; font-weight: normal; src: local('STSong-Light'), local('STSong'); }
-            @font-face { font-family: 'SimSun'; font-weight: bold; src: local('STSong'); }
-            @font-face { font-family: '微软雅黑'; font-weight: normal; src: local('PingFang SC'), local('PingFang SC Regular'); }
-            @font-face { font-family: '微软雅黑'; font-weight: bold; src: local('PingFang SC Semibold'), local('PingFang SC Medium'); }
-            @font-face { font-family: 'Microsoft YaHei'; font-weight: normal; src: local('PingFang SC'), local('PingFang SC Regular'); }
-            @font-face { font-family: 'Microsoft YaHei'; font-weight: bold; src: local('PingFang SC Semibold'), local('PingFang SC Medium'); }
-            @font-face { font-family: '黑体'; font-weight: normal; src: local('STHeiti'); }
-            @font-face { font-family: '黑体'; font-weight: bold; src: local('STHeiti Medium'); }
-            @font-face { font-family: 'SimHei'; font-weight: normal; src: local('STHeiti'); }
-            @font-face { font-family: 'SimHei'; font-weight: bold; src: local('STHeiti Medium'); }
-            @font-face { font-family: '楷体'; src: local('STKaiti'); }
-            @font-face { font-family: 'KaiTi'; src: local('STKaiti'); }
-            @font-face { font-family: '仿宋'; src: local('STFangsong'); }
-            @font-face { font-family: 'FangSong'; src: local('STFangsong'); }
-            @font-face { font-family: '等线'; font-weight: normal; src: local('PingFang SC'); }
-            @font-face { font-family: '等线'; font-weight: bold; src: local('PingFang SC Semibold'); }
-            @font-face { font-family: 'DengXian'; font-weight: normal; src: local('PingFang SC'); }
-            @font-face { font-family: 'DengXian'; font-weight: bold; src: local('PingFang SC Semibold'); }
-        </style>
-        <script>\(Self.jszipScript)</script>
-        <script>\(Self.docxPreviewScript)</script>
-        </head>
-        <body>
-        <div id="status">加载中…</div>
-        <div id="container"></div>
-        <script>
-        (async function() {
-            var status = document.getElementById('status');
-            var container = document.getElementById('container');
-            var b64 = "\(base64)";
-            var bin = atob(b64);
-            var bytes = new Uint8Array(bin.length);
-            for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-            var MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-            var opts = {
-                className: 'docx', inWrapper: true, breakPages: true,
-                ignoreLastRenderedPageBreak: true, experimental: true,
-                trimXmlDeclaration: true, renderHeaders: true, renderFooters: true,
-                renderFootnotes: true, renderEndnotes: true,
-                renderComments: true, renderChanges: true,
-            };
-            try {
-                await docx.renderAsync(new Blob([bytes], { type: MIME }), container, null, opts);
-                status.textContent = '';
-            } catch (e1) {
-                // Retry after stripping OMML math (common pandoc-generated docx issue)
-                try {
-                    status.textContent = '正在处理数学公式…';
-                    var zip = await JSZip.loadAsync(bytes);
-                    var docFile = zip.file('word/document.xml');
-                    if (!docFile) throw e1;
-                    var xml = await docFile.async('string');
-                    var cleaned = xml
-                        .replace(/<m:oMathPara\\b[^>]*>[\\s\\S]*?<\\/m:oMathPara>/g,
-                                 '<w:p><w:r><w:t>[公式]</w:t></w:r></w:p>')
-                        .replace(/<m:oMath\\b[^>]*>[\\s\\S]*?<\\/m:oMath>/g,
-                                 '<w:r><w:t>[公式]</w:t></w:r>');
-                    zip.file('word/document.xml', cleaned);
-                    var newBytes = await zip.generateAsync({ type: 'uint8array' });
-                    container.innerHTML = '';
-                    await docx.renderAsync(new Blob([newBytes], { type: MIME }), container, null, opts);
-                    status.textContent = '数学公式已转为占位符';
-                    setTimeout(function() { status.textContent = ''; }, 3000);
-                } catch (e2) {
-                    status.className = 'error';
-                    status.textContent = '渲染失败: ' + (e2 && e2.message ? e2.message : e2);
-                }
-            }
-        })();
-        </script>
-        </body>
-        </html>
-        """
+        let html = buildDocxHTML(
+            base64: base64,
+            jszipScript: Self.jszipScript,
+            docxPreviewScript: Self.docxPreviewScript
+        )
 
         DispatchQueue.main.async { [weak self] in
             self?.webView.loadHTMLString(html, baseURL: nil)
