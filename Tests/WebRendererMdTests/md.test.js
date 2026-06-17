@@ -82,6 +82,33 @@ test('test_code_block_content_has_no_injected_tags', function() {
     );
 });
 
+test('test_mixed_document_keeps_h1_ul_table_p', function() {
+    // A document mixing a heading, an unordered list, a table and a plain
+    // paragraph must still render each element to its own block: the
+    // code-block placeholder change must not have broken the other regexes.
+    const input = [
+        '# Title',
+        '',
+        '- one',
+        '- two',
+        '',
+        '| A | B |',
+        '|---|---|',
+        '| 1 | 2 |',
+        '',
+        'Just a paragraph.'
+    ].join('\n');
+    const out = md(input);
+    assert.ok(out.indexOf('<h1>Title</h1>') !== -1,
+        'heading must render to <h1>: ' + out);
+    assert.ok(/<ul>\s*<li>one<\/li>/.test(out),
+        'unordered list must render to <ul><li>: ' + out);
+    assert.ok(out.indexOf('<table>') !== -1,
+        'table must render to <table>: ' + out);
+    assert.ok(out.indexOf('<p>Just a paragraph.</p>') === -1,
+        'plain paragraph must render to <p>: ' + out);
+});
+
 console.log('');
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed === 0 ? 0 : 1);
