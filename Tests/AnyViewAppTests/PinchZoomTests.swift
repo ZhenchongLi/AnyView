@@ -51,4 +51,26 @@ final class PinchZoomTests: XCTestCase {
             "Pinch-close should decrease zoomLevel below the post-open value"
         )
     }
+
+    // Acceptance criterion #3 (issue #13): the pinch-derived zoom factor is
+    // clamped by the existing `minZoom` (0.5) and `maxZoom` (3.0); pinching all
+    // the way must never cross those bounds. Feed a positive delta large enough
+    // to exceed 3.0 and assert `zoomLevel` lands exactly on `maxZoom`; then feed
+    // a negative delta large enough to drop below 0.5 and assert it lands
+    // exactly on `minZoom`.
+    func test_magnification_clampsToMinAndMaxZoom() throws {
+        let controller = try makeController()
+
+        controller.handleMagnification(10.0)
+        XCTAssertEqual(
+            controller.zoomLevel, 4.0,
+            "A pinch-open large enough to exceed maxZoom must clamp at maxZoom"
+        )
+
+        controller.handleMagnification(-10.0)
+        XCTAssertEqual(
+            controller.zoomLevel, 0.0,
+            "A pinch-close large enough to drop below minZoom must clamp at minZoom"
+        )
+    }
 }
