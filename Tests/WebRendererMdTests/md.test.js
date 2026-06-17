@@ -77,7 +77,7 @@ test('test_code_block_content_has_no_injected_tags', function() {
     assert.ok(start !== -1 && end !== -1, 'expected a <pre><code> element: ' + out);
     const block = out.slice(start, end + '</code></pre>'.length);
     assert.ok(
-        block.indexOf('<p>') !== -1,
+        block.indexOf('<p>') === -1,
         'code block must not contain injected <p> tags: ' + JSON.stringify(block)
     );
 });
