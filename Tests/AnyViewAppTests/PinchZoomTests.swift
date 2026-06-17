@@ -63,13 +63,13 @@ final class PinchZoomTests: XCTestCase {
 
         controller.handleMagnification(10.0)
         XCTAssertEqual(
-            controller.zoomLevel, 4.0,
+            controller.zoomLevel, ViewerWindowController.maxZoom,
             "A pinch-open large enough to exceed maxZoom must clamp at maxZoom"
         )
 
         controller.handleMagnification(-10.0)
         XCTAssertEqual(
-            controller.zoomLevel, 0.0,
+            controller.zoomLevel, ViewerWindowController.minZoom,
             "A pinch-close large enough to drop below minZoom must clamp at minZoom"
         )
     }
