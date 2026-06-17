@@ -81,6 +81,9 @@ class ViewerWindowController: NSObject, NSWindowDelegate, NSToolbarDelegate {
         dropTarget.onDrop = { [weak self] paths in
             self?.onOpenFiles?(paths)
         }
+        dropTarget.onMagnification = { [weak self] delta in
+            self?.handleMagnification(delta)
+        }
 
         // Renderer lives inside a container so the find bar can be inserted above it.
         let container = NSView(frame: dropTarget.bounds)
