@@ -264,7 +264,7 @@ class ViewerWindowController: NSObject, NSWindowDelegate, NSToolbarDelegate {
     @objc func actualSize(_ sender: Any?) { setZoom(1.0) }
 
     func handleMagnification(_ delta: CGFloat) {
-        // Stubbed entry point: wiring added in the green phase.
+        setZoom(zoomLevel + delta)
     }
 
     private var zoomLabelText: String { "\(Int((zoomLevel * 100).rounded()))%" }
