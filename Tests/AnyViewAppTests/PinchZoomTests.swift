@@ -147,8 +147,8 @@ final class PinchZoomTests: XCTestCase {
 
         let expectedFromZoomLevel = "\(Int((controller.zoomLevel * 100).rounded()))%"
         XCTAssertEqual(
-            controller.zoomLabelButtonTitle, "999%",
-            "After a pinch, the toolbar percent label should equal \(expectedFromZoomLevel), the text the current zoomLevel computes to"
+            controller.zoomLabelButtonTitle, expectedFromZoomLevel,
+            "After a pinch, the toolbar percent label should equal the text the current zoomLevel computes to"
         )
     }
 }
