@@ -4,6 +4,15 @@ import Cocoa
 class DropTargetView: NSView {
     var onDrop: (([String]) -> Void)?
 
+    /// Forwards a trackpad pinch's magnification increment (positive = pinch
+    /// open, negative = pinch close) to whoever wires it up — same pattern as
+    /// `onDrop`. `ViewerWindowController` sets this in `showWindow`.
+    var onMagnification: ((CGFloat) -> Void)?
+
+    override func magnify(with event: NSEvent) {
+        onMagnification?(event.magnification)
+    }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         registerForDraggedTypes([.fileURL])
