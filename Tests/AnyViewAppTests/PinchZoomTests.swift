@@ -1,4 +1,5 @@
 import XCTest
+import PDFKit
 @testable import AnyViewApp
 
 final class PinchZoomTests: XCTestCase {
@@ -9,6 +10,25 @@ final class PinchZoomTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("anyview-pinch-\(UUID().uuidString).png")
         try Data().write(to: url)
+        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+        return ViewerWindowController(filePath: url.path)
+    }
+
+    /// Writes a real one-page PDF and returns a controller pointed at it so
+    /// `RendererFactory` yields a genuine `PDFRenderer` (no stub / no double).
+    private func makePDFController() throws -> ViewerWindowController {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("anyview-pinch-\(UUID().uuidString).pdf")
+        let data = NSMutableData()
+        let consumer = CGDataConsumer(data: data as CFMutableData)!
+        var box = CGRect(x: 0, y: 0, width: 200, height: 200)
+        let ctx = CGContext(consumer: consumer, mediaBox: &box, nil)!
+        ctx.beginPDFPage(nil)
+        ctx.setFillColor(NSColor.red.cgColor)
+        ctx.fill(CGRect(x: 10, y: 10, width: 100, height: 100))
+        ctx.endPDFPage()
+        ctx.closePDF()
+        try (data as Data).write(to: url)
         addTeardownBlock { try? FileManager.default.removeItem(at: url) }
         return ViewerWindowController(filePath: url.path)
     }
@@ -71,6 +91,40 @@ final class PinchZoomTests: XCTestCase {
         XCTAssertEqual(
             controller.zoomLevel, ViewerWindowController.minZoom,
             "A pinch-close large enough to drop below minZoom must clamp at minZoom"
+        )
+    }
+
+    // Acceptance criterion #4 (issue #13): the pinch delta must reach the
+    // current renderer's own real `setZoom(_:)` — no stub, no double. The
+    // controller holds a genuine `PDFRenderer` from `RendererFactory`; after a
+    // magnification the renderer's `PDFView.scaleFactor` (the externally
+    // observable effect of `PDFRenderer.setZoom`) must equal the clamped
+    // `zoomLevel`, proving the zoom actually landed on the real renderer.
+    func test_magnification_appliesToRealRendererSetZoom() throws {
+        let controller = try makePDFController()
+        controller.showWindow(nil)
+
+        // Drain the main queue so the async PDF document load completes before
+        // we assert, so any layout/autoScales pass happens first.
+        let drain = expectation(description: "drain main queue")
+        DispatchQueue.main.async { drain.fulfill() }
+        wait(for: [drain], timeout: 2.0)
+
+        let renderer = try XCTUnwrap(
+            controller.currentRenderer as? PDFRenderer,
+            "Controller should hold a real PDFRenderer from RendererFactory"
+        )
+        let pdfView = try XCTUnwrap(renderer.view as? PDFView)
+
+        controller.handleMagnification(10.0)
+
+        XCTAssertEqual(
+            controller.zoomLevel, ViewerWindowController.maxZoom,
+            "Sanity: a large pinch-open should clamp zoomLevel at maxZoom"
+        )
+        XCTAssertEqual(
+            pdfView.scaleFactor, controller.zoomLevel, accuracy: 0.0001,
+            "The pinch zoom must reach the real PDFRenderer.setZoom, setting pdfView.scaleFactor to the clamped zoomLevel"
         )
     }
 }
