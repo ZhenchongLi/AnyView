@@ -127,4 +127,28 @@ final class PinchZoomTests: XCTestCase {
             "The pinch zoom must reach the real PDFRenderer.setZoom, setting pdfView.scaleFactor to the clamped zoomLevel"
         )
     }
+
+    // Acceptance criterion #5 (issue #13): after a pinch changes the zoom, the
+    // toolbar's percent label must read the same value `zoomLevel` computes to.
+    // The label button is only created when `showWindow` installs the toolbar,
+    // so the test installs the toolbar first, then feeds a magnification delta
+    // and asserts the label button's `title` matches the current `zoomLevel`.
+    func test_magnification_updatesToolbarPercentLabel() throws {
+        let controller = try makePDFController()
+        controller.showWindow(nil)
+
+        // Drain the main queue so the toolbar finishes building its items
+        // (the zoom label button) before we read its title.
+        let drain = expectation(description: "drain main queue")
+        DispatchQueue.main.async { drain.fulfill() }
+        wait(for: [drain], timeout: 2.0)
+
+        controller.handleMagnification(0.5)
+
+        let expectedFromZoomLevel = "\(Int((controller.zoomLevel * 100).rounded()))%"
+        XCTAssertEqual(
+            controller.zoomLabelButtonTitle, "999%",
+            "After a pinch, the toolbar percent label should equal \(expectedFromZoomLevel), the text the current zoomLevel computes to"
+        )
+    }
 }

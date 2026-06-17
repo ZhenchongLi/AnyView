@@ -29,6 +29,10 @@ class ViewerWindowController: NSObject, NSWindowDelegate, NSToolbarDelegate {
     private(set) var zoomLevel: CGFloat = 1.0
     private weak var zoomLabelButton: NSButton?
 
+    /// Read-only access to the toolbar zoom label button's title so tests can
+    /// confirm a pinch zoom keeps the percent label in sync with `zoomLevel`.
+    var zoomLabelButtonTitle: String? { zoomLabelButton?.title }
+
     private var findBar: FindBarView?
     private var rendererContainer: NSView?
 
