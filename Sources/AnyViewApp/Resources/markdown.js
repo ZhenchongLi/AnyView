@@ -6,6 +6,7 @@
 // runs both in the browser (WKWebView) and under node.
 function md(s) {
     var mermaidBlocks = [];
+    var codeBlocks = [];
     s = s.replace(/```(\w*)\n([\s\S]*?)```/g, function(_, lang, code) {
         if (lang === 'mermaid') {
             var idx = mermaidBlocks.length;
@@ -13,7 +14,12 @@ function md(s) {
             return '<div data-mermaid-placeholder="' + idx + '"></div>';
         }
         var cls = lang ? ' class="language-' + lang + '"' : '';
-        return '<pre><code' + cls + '>' + esc(code.trim()) + '</code></pre>';
+        var cidx = codeBlocks.length;
+        // Store the final HTML and leave a single-line placeholder, so the
+        // block-/line-level regexes below (esp. the paragraph regex) never see
+        // the code's interior lines or blank lines and can't fracture it.
+        codeBlocks.push('<pre><code' + cls + '>' + esc(code.trim()) + '</code></pre>');
+        return '<div data-code-placeholder="' + cidx + '"></div>';
     });
     s = s.replace(/^\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)*)/gm, function(_, header, body) {
         var ths = header.split('|').map(function(c){return '<th>'+c.trim()+'</th>';}).join('');
@@ -43,6 +49,11 @@ function md(s) {
     s = s.replace(/<\/blockquote>\n<blockquote>/g, '<br>');
     s = s.replace(/<div data-mermaid-placeholder="(\d+)"><\/div>/g, function(_, idx) {
         return '<div class="mermaid">' + esc(mermaidBlocks[+idx]) + '</div>';
+    });
+    // Restore code blocks last. Splice the stored HTML back directly; its
+    // content was already escaped at extraction (unlike the mermaid restore).
+    s = s.replace(/<div data-code-placeholder="(\d+)"><\/div>/g, function(_, idx) {
+        return codeBlocks[+idx];
     });
     return s;
 }
