@@ -128,6 +128,40 @@ final class PinchZoomTests: XCTestCase {
         )
     }
 
+    // Regression pin (issue #13 review): the pinch receiving end must actually
+    // exist and be wired. `showWindow` builds a `DropTargetView` as the window's
+    // content view; that view must expose an `onMagnification` callback (same
+    // pattern as `onDrop`), and `showWindow` must wire it to
+    // `handleMagnification(_:)`. Without this wiring a trackpad pinch has no
+    // receiver and `zoomLevel` never moves. The test reaches the real
+    // `DropTargetView` off the window, asserts the callback is non-nil, then
+    // invokes it with a positive delta and asserts `zoomLevel` rose — proving the
+    // callback routes into the controller's zoom path.
+    func test_showWindow_wiresDropTargetMagnificationToController() throws {
+        let controller = try makePDFController()
+        controller.showWindow(nil)
+
+        let drain = expectation(description: "drain main queue")
+        DispatchQueue.main.async { drain.fulfill() }
+        wait(for: [drain], timeout: 2.0)
+
+        let dropTarget = try XCTUnwrap(
+            controller.window?.contentView as? DropTargetView,
+            "showWindow should install a DropTargetView as the window content view"
+        )
+        let onMagnification = try XCTUnwrap(
+            dropTarget.onMagnification,
+            "showWindow must wire DropTargetView.onMagnification so trackpad pinch has a receiver"
+        )
+
+        XCTAssertEqual(controller.zoomLevel, 1.0)
+        onMagnification(0.5)
+        XCTAssertGreaterThan(
+            controller.zoomLevel, 1.0,
+            "Invoking the wired onMagnification callback must route into handleMagnification and raise zoomLevel"
+        )
+    }
+
     // Acceptance criterion #5 (issue #13): after a pinch changes the zoom, the
     // toolbar's percent label must read the same value `zoomLevel` computes to.
     // The label button is only created when `showWindow` installs the toolbar,
