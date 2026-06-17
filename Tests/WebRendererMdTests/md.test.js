@@ -61,7 +61,7 @@ test('test_blank_line_inside_code_block_preserved', function() {
     assert.ok(matches.length > 0, 'expected a <pre><code> element: ' + out);
     const interior = matches[1];
     assert.ok(
-        interior.indexOf('\n\n') === -1,
+        interior.indexOf('\n\n') !== -1,
         'blank line inside code block must be preserved as a blank line: ' +
             JSON.stringify(interior)
     );
