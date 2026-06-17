@@ -22,6 +22,10 @@ class ViewerWindowController: NSObject, NSWindowDelegate, NSToolbarDelegate {
 
     private(set) var window: NSWindow?
     private var renderer: ViewerRenderer?
+
+    /// Read-only access to the current renderer so tests can confirm a pinch
+    /// zoom reached the real renderer's `setZoom(_:)`.
+    var currentRenderer: ViewerRenderer? { renderer }
     private(set) var zoomLevel: CGFloat = 1.0
     private weak var zoomLabelButton: NSButton?
 
