@@ -46,7 +46,7 @@ final class PinchZoomTests: XCTestCase {
         )
 
         controller.handleMagnification(-0.5)
-        XCTAssertGreaterThan(
+        XCTAssertLessThan(
             controller.zoomLevel, afterOpen,
             "Pinch-close should decrease zoomLevel below the post-open value"
         )
