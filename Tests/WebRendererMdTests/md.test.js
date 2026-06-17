@@ -105,7 +105,7 @@ test('test_mixed_document_keeps_h1_ul_table_p', function() {
         'unordered list must render to <ul><li>: ' + out);
     assert.ok(out.indexOf('<table>') !== -1,
         'table must render to <table>: ' + out);
-    assert.ok(out.indexOf('<p>Just a paragraph.</p>') === -1,
+    assert.ok(out.indexOf('<p>Just a paragraph.</p>') !== -1,
         'plain paragraph must render to <p>: ' + out);
 });
 
