@@ -67,6 +67,21 @@ test('test_blank_line_inside_code_block_preserved', function() {
     );
 });
 
+test('test_code_block_content_has_no_injected_tags', function() {
+    // The <pre><code>...</code></pre> substring of md()'s output must not
+    // contain a <p> tag injected by the paragraph/inline regexes.
+    const input = '```go\nfunc main() {\n\n\tprintln("hi")\n}\n```';
+    const out = md(input);
+    const start = out.indexOf('<pre><code');
+    const end = out.indexOf('</code></pre>', start);
+    assert.ok(start !== -1 && end !== -1, 'expected a <pre><code> element: ' + out);
+    const block = out.slice(start, end + '</code></pre>'.length);
+    assert.ok(
+        block.indexOf('<p>') !== -1,
+        'code block must not contain injected <p> tags: ' + JSON.stringify(block)
+    );
+});
+
 console.log('');
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed === 0 ? 0 : 1);
