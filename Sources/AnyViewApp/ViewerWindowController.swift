@@ -22,7 +22,7 @@ class ViewerWindowController: NSObject, NSWindowDelegate, NSToolbarDelegate {
 
     private(set) var window: NSWindow?
     private var renderer: ViewerRenderer?
-    private var zoomLevel: CGFloat = 1.0
+    private(set) var zoomLevel: CGFloat = 1.0
     private weak var zoomLabelButton: NSButton?
 
     private var findBar: FindBarView?
@@ -262,6 +262,10 @@ class ViewerWindowController: NSObject, NSWindowDelegate, NSToolbarDelegate {
     @objc func zoomIn(_ sender: Any?) { setZoom(zoomLevel + Self.zoomStep) }
     @objc func zoomOut(_ sender: Any?) { setZoom(zoomLevel - Self.zoomStep) }
     @objc func actualSize(_ sender: Any?) { setZoom(1.0) }
+
+    func handleMagnification(_ delta: CGFloat) {
+        // Stubbed entry point: wiring added in the green phase.
+    }
 
     private var zoomLabelText: String { "\(Int((zoomLevel * 100).rounded()))%" }
 
