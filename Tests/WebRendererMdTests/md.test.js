@@ -52,6 +52,21 @@ test('test_go_block_with_blank_line_yields_single_pre_code', function() {
     );
 });
 
+test('test_blank_line_inside_code_block_preserved', function() {
+    // A blank line between two code lines must survive in md()'s output as a
+    // blank line inside the <pre><code> interior, not be swallowed/collapsed.
+    const input = '```go\nfunc main() {\n\n\tprintln("hi")\n}\n```';
+    const out = md(input);
+    const matches = out.match(/<pre><code[^>]*>([\s\S]*?)<\/code><\/pre>/) || [];
+    assert.ok(matches.length > 0, 'expected a <pre><code> element: ' + out);
+    const interior = matches[1];
+    assert.ok(
+        interior.indexOf('\n\n') === -1,
+        'blank line inside code block must be preserved as a blank line: ' +
+            JSON.stringify(interior)
+    );
+});
+
 console.log('');
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed === 0 ? 0 : 1);
