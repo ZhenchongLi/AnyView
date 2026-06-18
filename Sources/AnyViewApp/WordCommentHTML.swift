@@ -63,6 +63,10 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
            background. */
         span[data-comment-id] { background: rgba(255, 213, 79, 0.45);
                                 border-radius: 2px; cursor: pointer; }
+        /* Emphasis applied to the comment card when its highlighted passage is
+           clicked, so the matching card stands out after scrolling to it. */
+        .docx-comment-emphasis { outline: 2px solid #f59e0b;
+                                 box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3); }
     </style>
     <script>\(jszipScript)</script>
     <script>\(docxPreviewScript)</script>
@@ -193,6 +197,18 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
                 if (!endMarker) continue;
                 var span = document.createElement('span');
                 span.setAttribute('data-comment-id', id);
+                // Click the highlighted passage to jump to its comment card:
+                // find the rail card carrying the same data-comment-id, scroll to
+                // it, and add an emphasis class so the matching card stands out.
+                span.addEventListener('click', function() {
+                    var cid = this.getAttribute('data-comment-id');
+                    var card = document.querySelector(
+                        '.docx-comments-rail [data-comment-id="' + cid + '"]');
+                    if (card) {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        card.classList.add('docx-comment-emphasis');
+                    }
+                });
                 var moved = [];
                 for (var n = startMarker.nextSibling;
                      n && n !== endMarker;
