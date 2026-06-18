@@ -129,6 +129,18 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
             var card = document.createElement('div');
             if (commentId !== null) {
                 card.setAttribute('data-comment-id', commentId);
+                // Click the card to jump to the passage it annotates: find the
+                // body highlight span carrying the same data-comment-id and
+                // scrollIntoView to it.
+                card.style.cursor = 'pointer';
+                card.addEventListener('click', function() {
+                    var cid = this.getAttribute('data-comment-id');
+                    var span = document.querySelector(
+                        '#container span[data-comment-id="' + cid + '"]');
+                    if (span) {
+                        span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
             }
             if (author || date) {
                 var meta = document.createElement('div');
