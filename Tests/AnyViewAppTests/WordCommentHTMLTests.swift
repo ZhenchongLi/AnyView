@@ -480,6 +480,48 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #2 (issue #18): the HTML buildDocxHTML produces must
+    // carry a CSS rule, inside its `<style>` block, that gives the body
+    // highlight range — the span carrying `data-comment-id` — a visible
+    // background. Criterion #3 wraps the body range between commentRangeStart /
+    // commentRangeEnd in a `<span data-comment-id="...">`; without a CSS rule
+    // that span is invisible. This anchors on the `<style>` block (between
+    // `<style>` and `</style>`) and asserts that region carries a selector
+    // matching a span by its `data-comment-id` attribute (substring
+    // `span[data-comment-id]`) and that the rule sets a visible `background`.
+    // Both substrings are absent from the current `<style>` block, so the
+    // assertions are genuinely red first.
+    func test_buildDocxHTML_highlightSpanHasBackgroundCss() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        guard let styleOpenRange = html.range(of: "<style>") else {
+            XCTFail("Expected docx HTML to contain a <style> block")
+            return
+        }
+        guard let styleCloseRange = html.range(of: "</style>", range: styleOpenRange.upperBound..<html.endIndex) else {
+            XCTFail("Expected docx HTML's <style> block to be closed with </style>")
+            return
+        }
+        let styleBlock = String(html[styleOpenRange.upperBound..<styleCloseRange.lowerBound])
+        guard let selectorRange = styleBlock.range(of: "span[data-comment-id]") else {
+            XCTFail("Expected the <style> block to carry a CSS rule selecting the body highlight span by its data-comment-id attribute (span[data-comment-id])")
+            return
+        }
+        let ruleRegion = String(styleBlock[selectorRange.upperBound..<styleBlock.endIndex])
+        guard let braceRange = ruleRegion.range(of: "}") else {
+            XCTFail("Expected the span[data-comment-id] CSS rule to be closed with }")
+            return
+        }
+        let declarations = String(ruleRegion[ruleRegion.startIndex..<braceRange.lowerBound])
+        XCTAssertTrue(
+            declarations.contains("background"),
+            "Expected the span[data-comment-id] CSS rule to set a visible background on the body highlight range"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
