@@ -564,6 +564,45 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #4 (issue #18): buildDocxHTML's output must contain a
+    // piece of JS that vertically positions each comment card by its paired body
+    // highlight span. Criterion #1 gave each card a `data-comment-id`; criterion
+    // #3 gave each body highlight span the same `data-comment-id`. Once the span
+    // is wrapped it has a real `offsetTop` in the page, so the positioning JS
+    // reads the paired span's `offsetTop` and writes it into the card's vertical
+    // position via `top` or `transform: translateY(...)`. This anchors on the
+    // normal render-path region (between the word/comments.xml read and the
+    // math-formula fallback marker '数学公式', following the established pattern)
+    // and asserts the JS in that region reads `offsetTop` and writes either `top`
+    // or `transform: translateY`. Both substrings are absent from the current JS,
+    // so the assertions are genuinely red first.
+    func test_buildDocxHTML_positionsCardByOffsetTop() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        guard let commentsReadRange = html.range(of: "word/comments.xml") else {
+            XCTFail("Expected docx HTML to read the docx package's word/comments.xml")
+            return
+        }
+        guard let mathFallbackRange = html.range(of: "数学公式") else {
+            XCTFail("Expected docx HTML to contain the math-formula fallback marker '数学公式'")
+            return
+        }
+        let normalPathRegion = String(html[commentsReadRange.upperBound..<mathFallbackRange.lowerBound])
+        XCTAssertTrue(
+            normalPathRegion.contains("offsetTop"),
+            "Expected the normal-path JS to read each card's paired body highlight span's offsetTop so the card can be positioned to its annotated passage"
+        )
+        XCTAssertTrue(
+            normalPathRegion.contains("transform = 'translateY") ||
+            normalPathRegion.contains("transform: translateY") ||
+            normalPathRegion.contains(".style.top"),
+            "Expected the normal-path JS to write the paired span's offsetTop into the card's vertical position via top or transform: translateY"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
