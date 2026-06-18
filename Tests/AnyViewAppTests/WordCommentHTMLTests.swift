@@ -603,6 +603,45 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #5 (issue #18): buildDocxHTML's output must contain a
+    // piece of JS that binds a click listener to each comment card, and whose
+    // handler scrolls the page to the paired body highlight span. Criterion #1
+    // gave each card a `data-comment-id`; criterion #3 gave each body highlight
+    // span the same `data-comment-id`. Clicking a card should now jump to the
+    // passage it annotates: the JS registers a click listener
+    // (`addEventListener` with `'click'`) on each card, and the handler looks up
+    // the paired span by its `data-comment-id` and `scrollIntoView`s to it. This
+    // anchors on the normal render-path region (between the word/comments.xml
+    // read and the math-formula fallback marker '数学公式', following the
+    // established pattern) and asserts the JS in that region registers a click
+    // listener and calls scrollIntoView. Both substrings are absent from the
+    // current JS, so the assertions are genuinely red first.
+    func test_buildDocxHTML_cardClickScrollsToHighlight() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        guard let commentsReadRange = html.range(of: "word/comments.xml") else {
+            XCTFail("Expected docx HTML to read the docx package's word/comments.xml")
+            return
+        }
+        guard let mathFallbackRange = html.range(of: "数学公式") else {
+            XCTFail("Expected docx HTML to contain the math-formula fallback marker '数学公式'")
+            return
+        }
+        let normalPathRegion = String(html[commentsReadRange.upperBound..<mathFallbackRange.lowerBound])
+        XCTAssertTrue(
+            normalPathRegion.contains("addEventListener") &&
+            normalPathRegion.contains("'click'"),
+            "Expected the normal-path JS to bind a click listener to each comment card so clicking it jumps to the annotated passage"
+        )
+        XCTAssertTrue(
+            normalPathRegion.contains("scrollIntoView"),
+            "Expected the card's click handler to find the paired body highlight span by its data-comment-id and scrollIntoView to it"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
