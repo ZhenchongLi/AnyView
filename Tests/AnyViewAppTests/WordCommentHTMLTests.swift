@@ -439,7 +439,7 @@ final class WordCommentHTMLTests: XCTestCase {
             docxPreviewScript: "/* stub docx-preview */"
         )
         XCTAssertTrue(
-            html.contains("renderChanges: false"),
+            html.contains("renderChanges: true"),
             "Expected docx HTML to preserve renderChanges: true so revisions (w:ins/w:del) keep rendering"
         )
     }
