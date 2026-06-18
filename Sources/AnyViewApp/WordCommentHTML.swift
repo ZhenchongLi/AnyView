@@ -185,10 +185,14 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
             while ((node = walker.nextNode())) {
                 var data = node.nodeValue || '';
                 var m;
-                if ((m = /commentRangeStart[^0-9-]*(-?\\d+)/.exec(data))) {
-                    starts[m[1]] = node;
-                } else if ((m = /commentRangeEnd[^0-9-]*(-?\\d+)/.exec(data))) {
+                // docx-preview emits range markers as comment nodes reading
+                // 'start of comment #N' / 'end of comment #N'; older/OOXML-style
+                // 'commentRangeStart #N' is matched too for resilience. Check the
+                // end form first since 'start of comment' has no 'end' substring.
+                if ((m = /(?:commentRangeEnd|end of comment)[^0-9-]*(-?\\d+)/.exec(data))) {
                     ends[m[1]] = node;
+                } else if ((m = /(?:commentRangeStart|start of comment)[^0-9-]*(-?\\d+)/.exec(data))) {
+                    starts[m[1]] = node;
                 }
             }
             for (var id in starts) {

@@ -51,6 +51,30 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Regression pin for the #18 comment-anchoring bug: the highlight pass walks
+    // docx-preview's comment marker nodes, which read "start of comment #N" /
+    // "end of comment #N" — NOT the OOXML element names "commentRangeStart" /
+    // "commentRangeEnd". The original #18 code keyed its regex off the OOXML
+    // names, so it matched nothing at runtime (highlight + card alignment silently
+    // did nothing) while the unit tests — which only assert the logic is present —
+    // stayed green. This pins the actual docx-preview marker text so a regression
+    // back to the wrong key is caught.
+    func test_buildDocxHTML_anchorsToDocxPreviewMarkerText() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        XCTAssertTrue(
+            html.contains("start of comment"),
+            "comment-range highlight must key off docx-preview's 'start of comment #N' marker text, not the OOXML 'commentRangeStart' element name (issue #18 runtime bug)"
+        )
+        XCTAssertTrue(
+            html.contains("end of comment"),
+            "comment-range highlight must key off docx-preview's 'end of comment #N' marker text, not the OOXML 'commentRangeEnd' element name (issue #18 runtime bug)"
+        )
+    }
+
     // Acceptance criterion #7 (issue #9): the existing comment-free docx
     // rendering is preserved. The generated docx HTML must still contain the
     // `docx.renderAsync` call that drives docx-preview, and the CJK `@font-face`
