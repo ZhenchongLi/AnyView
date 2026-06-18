@@ -390,6 +390,40 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #4 (issue #16): when `word/comments.xml` is missing
+    // or parses to zero `w:comment` nodes, the comment-parsing path must create
+    // no card and no `.docx-comments-rail` container. The JS already returns
+    // early when the file is absent (`if (!commentsFile) return;`), but the
+    // zero-`w:comment` case is only handled implicitly by lazy rail creation
+    // inside the iteration loop. This pins an explicit empty-guard: in the
+    // comment-parsing region (after the `word/comments.xml` read, before the
+    // math-formula fallback marker '数学公式') the JS must early-exit on a
+    // zero comment count (substring `comments.length === 0`) before any rail is
+    // created. That substring is absent from the current HTML, so the assertion
+    // is genuinely red first. Paired with the existing
+    // test_buildDocxHTML_noSidebarContainerWhenCommentFree, which pins that no
+    // static `<div class="docx-comments-rail">` container is emitted.
+    func test_buildDocxHTML_noRailWhenNoComments() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        guard let commentsReadRange = html.range(of: "word/comments.xml") else {
+            XCTFail("Expected docx HTML to read the docx package's word/comments.xml")
+            return
+        }
+        guard let mathFallbackRange = html.range(of: "数学公式") else {
+            XCTFail("Expected docx HTML to contain the math-formula fallback marker '数学公式'")
+            return
+        }
+        let parsingRegion = String(html[commentsReadRange.upperBound..<mathFallbackRange.lowerBound])
+        XCTAssertTrue(
+            parsingRegion.contains("comments.length === 0"),
+            "Expected the comment-parsing JS to early-exit on a zero w:comment count (comments.length === 0) before any .docx-comments-rail is created"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
