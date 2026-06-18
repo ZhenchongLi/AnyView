@@ -97,6 +97,10 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
         var xml = await commentsFile.async('string');
         var doc = new DOMParser().parseFromString(xml, 'application/xml');
         var comments = doc.getElementsByTagName('w:comment');
+        // No w:comment in the package: build no card and no rail, matching the
+        // word/comments.xml-missing case above and moveCommentNodesToRail's
+        // "no nodes, no rail" behavior.
+        if (comments.length === 0) return;
         var rail = null;
         for (var i = 0; i < comments.length; i++) {
             var comment = comments[i];
