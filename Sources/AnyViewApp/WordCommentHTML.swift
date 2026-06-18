@@ -119,7 +119,11 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
             }
             var author = comment.getAttribute('w:author');
             var date = comment.getAttribute('w:date');
+            var commentId = comment.getAttribute('w:id');
             var card = document.createElement('div');
+            if (commentId !== null) {
+                card.setAttribute('data-comment-id', commentId);
+            }
             if (author || date) {
                 var meta = document.createElement('div');
                 meta.className = 'docx-comment-meta';
