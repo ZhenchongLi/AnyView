@@ -642,6 +642,47 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #6 (issue #18): buildDocxHTML's output must contain a
+    // piece of JS that binds a click listener to each body highlight span, and
+    // whose handler locates/emphasizes the comment card with the same
+    // data-comment-id. Criterion #5 made the card -> body direction work
+    // (clicking a card scrolls to its highlight span); this is the reverse
+    // direction: clicking a highlight span finds the paired card by its
+    // data-comment-id, scrolls to it, and adds an emphasis class
+    // (`classList.add`). The current JS only binds the card-side click handler,
+    // so the span-side handler and the emphasis-class call are absent. This
+    // anchors on the normal render-path region (between the word/comments.xml
+    // read and the math-formula fallback marker '数学公式', following the
+    // established pattern) and asserts the JS in that region wires the highlight
+    // span to a click handler that scrolls to the paired card and adds an
+    // emphasis class via classList.add. The classList.add substring is absent
+    // from the current JS, so the assertion is genuinely red first.
+    func test_buildDocxHTML_highlightClickEmphasizesCard() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        guard let commentsReadRange = html.range(of: "word/comments.xml") else {
+            XCTFail("Expected docx HTML to read the docx package's word/comments.xml")
+            return
+        }
+        guard let mathFallbackRange = html.range(of: "数学公式") else {
+            XCTFail("Expected docx HTML to contain the math-formula fallback marker '数学公式'")
+            return
+        }
+        let normalPathRegion = String(html[commentsReadRange.upperBound..<mathFallbackRange.lowerBound])
+        XCTAssertTrue(
+            normalPathRegion.contains("span.addEventListener") &&
+            normalPathRegion.contains("'click'"),
+            "Expected the normal-path JS to bind a click listener to each body highlight span so clicking the passage jumps to its comment card"
+        )
+        XCTAssertTrue(
+            normalPathRegion.contains("classList.add"),
+            "Expected the highlight span's click handler to find the paired comment card by its data-comment-id, scroll to it, and add an emphasis class via classList.add"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
