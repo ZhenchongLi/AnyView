@@ -424,6 +424,26 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #5 (issue #16): the HTML buildDocxHTML produces must
+    // still pass `renderChanges: true` to docx-preview, so revisions
+    // (`w:ins`/`w:del`) keep rendering exactly as before. This is a regression
+    // pin guarding against the comment-rendering change accidentally disturbing
+    // the track-changes option. `renderChanges: true` is part of the production
+    // HTML today, so this is a staged-red test: the deliberately wrong expected
+    // value below fires the assertion red first, then is corrected to current
+    // reality in the follow-up commit.
+    func test_buildDocxHTML_preservesRenderChanges() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        XCTAssertTrue(
+            html.contains("renderChanges: false"),
+            "Expected docx HTML to preserve renderChanges: true so revisions (w:ins/w:del) keep rendering"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
