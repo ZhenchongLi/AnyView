@@ -81,6 +81,17 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
             rail.appendChild(nodes[i]);
         }
     }
+    // Read the docx package's word/comments.xml in the normal render path,
+    // using the JSZip the page already loads. docx-preview renders comments via
+    // the CSS Custom Highlight API (display:none bubble, Safari 17+), which is
+    // invisible on the minimum-supported macOS, so we parse the comments
+    // ourselves rather than relying on docx-preview's comment nodes.
+    async function renderCommentsFromZip(bytes) {
+        var zip = await JSZip.loadAsync(bytes);
+        var commentsFile = zip.file('word/comments.xml');
+        if (!commentsFile) return;
+        await commentsFile.async('string');
+    }
     (async function() {
         var status = document.getElementById('status');
         var container = document.getElementById('container');
@@ -99,6 +110,7 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
         try {
             await docx.renderAsync(new Blob([bytes], { type: MIME }), container, null, opts);
             moveCommentNodesToRail(container);
+            await renderCommentsFromZip(bytes);
             status.textContent = '';
         } catch (e1) {
             // Retry after stripping OMML math (common pandoc-generated docx issue)
