@@ -283,6 +283,37 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #1 (issue #16): the HTML buildDocxHTML produces must
+    // read the docx package's `word/comments.xml` in the NORMAL render path
+    // (the one tied to the successful first `docx.renderAsync` call), not only
+    // inside the math-formula `catch` fallback block that reads
+    // `word/document.xml`. The current HTML reads `word/comments.xml` nowhere,
+    // so the substring assertion is genuinely red first. To distinguish "normal
+    // path reads comments.xml" from "math fallback reads document.xml" we anchor
+    // on document order: the first successful render path ('docx.renderAsync'
+    // then 'moveCommentNodesToRail') appears textually before the math-formula
+    // fallback marker '数学公式', and the `word/comments.xml` read must fall in
+    // that normal-path region — before the math fallback marker.
+    func test_buildDocxHTML_readsCommentsXmlInNormalPath() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        guard let commentsRange = html.range(of: "word/comments.xml") else {
+            XCTFail("Expected docx HTML to read the docx package's word/comments.xml")
+            return
+        }
+        guard let mathFallbackRange = html.range(of: "数学公式") else {
+            XCTFail("Expected docx HTML to contain the math-formula fallback marker '数学公式' anchoring the catch block")
+            return
+        }
+        XCTAssertLessThan(
+            commentsRange.lowerBound, mathFallbackRange.lowerBound,
+            "word/comments.xml must be read in the normal render path (before the math-formula fallback marker), not only inside the catch fallback that reads word/document.xml"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
