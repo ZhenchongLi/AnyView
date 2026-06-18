@@ -198,6 +198,36 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
             // without highlight rather than break the whole page.
         }
     }
+    // Vertically position each comment card next to its annotated passage.
+    //
+    // highlightCommentRanges wraps each annotated body range in a
+    // <span data-comment-id="..."> that now has a real offsetTop in the page.
+    // Each card carries the same data-comment-id. For every card we find its
+    // paired span by id, read the span's offsetTop, and slide the card down to
+    // that height with transform: translateY(...) so the card lines up with the
+    // passage it comments on. Cards whose span is missing keep their natural
+    // position. Wrapped so a failure never breaks the page render.
+    function positionCardsByHighlight(container) {
+        try {
+            var rail = document.querySelector('.docx-comments-rail');
+            if (!rail) return;
+            var cards = rail.querySelectorAll('[data-comment-id]');
+            for (var i = 0; i < cards.length; i++) {
+                var card = cards[i];
+                var id = card.getAttribute('data-comment-id');
+                var span = container.querySelector(
+                    'span[data-comment-id="' + id + '"]');
+                if (!span) continue;
+                // offsetTop of the paired highlight span: how far down the page
+                // the annotated passage sits. Slide the card to match.
+                var target = span.offsetTop;
+                card.style.position = 'absolute';
+                card.style.transform = 'translateY(' + target + 'px)';
+            }
+        } catch (e) {
+            // Span missing or layout not ready: leave cards in natural order.
+        }
+    }
     (async function() {
         var status = document.getElementById('status');
         var container = document.getElementById('container');
@@ -218,6 +248,7 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
             moveCommentNodesToRail(container);
             await renderCommentsFromZip(bytes);
             highlightCommentRanges(container);
+            positionCardsByHighlight(container);
             status.textContent = '';
         } catch (e1) {
             // Retry after stripping OMML math (common pandoc-generated docx issue)
