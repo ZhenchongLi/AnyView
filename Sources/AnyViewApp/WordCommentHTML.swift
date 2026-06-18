@@ -86,11 +86,40 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
     // the CSS Custom Highlight API (display:none bubble, Safari 17+), which is
     // invisible on the minimum-supported macOS, so we parse the comments
     // ourselves rather than relying on docx-preview's comment nodes.
+    //
+    // For each w:comment in comments.xml we build a card carrying the comment's
+    // body text (the concatenated w:t runs) and append it into the
+    // .docx-comments-rail, creating the rail lazily on the first card.
     async function renderCommentsFromZip(bytes) {
         var zip = await JSZip.loadAsync(bytes);
         var commentsFile = zip.file('word/comments.xml');
         if (!commentsFile) return;
-        await commentsFile.async('string');
+        var xml = await commentsFile.async('string');
+        var doc = new DOMParser().parseFromString(xml, 'application/xml');
+        var comments = doc.getElementsByTagName('w:comment');
+        var rail = null;
+        for (var i = 0; i < comments.length; i++) {
+            var comment = comments[i];
+            var runs = comment.getElementsByTagName('w:t');
+            var text = '';
+            for (var j = 0; j < runs.length; j++) {
+                text += runs[j].textContent;
+            }
+            if (!rail) {
+                rail = document.querySelector('.docx-comments-rail');
+                if (!rail) {
+                    rail = document.createElement('div');
+                    rail.className = 'docx-comments-rail';
+                    document.body.appendChild(rail);
+                }
+            }
+            var card = document.createElement('div');
+            var body = document.createElement('div');
+            body.className = 'docx-comment-text';
+            body.textContent = text;
+            card.appendChild(body);
+            rail.appendChild(card);
+        }
     }
     (async function() {
         var status = document.getElementById('status');
