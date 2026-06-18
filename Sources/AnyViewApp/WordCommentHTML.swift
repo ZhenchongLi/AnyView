@@ -57,6 +57,12 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
         .docx-comments-rail > * { background: #fff; border-radius: 6px;
                                   padding: 10px 12px; margin-bottom: 12px;
                                   box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        /* Body highlight range: the JS wraps the text between a comment's
+           commentRangeStart / commentRangeEnd markers in a
+           <span data-comment-id="..."> so the annotated passage gets a visible
+           background. */
+        span[data-comment-id] { background: rgba(255, 213, 79, 0.45);
+                                border-radius: 2px; cursor: pointer; }
     </style>
     <script>\(jszipScript)</script>
     <script>\(docxPreviewScript)</script>
