@@ -355,6 +355,41 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #3 (issue #16): when a `w:comment` carries a
+    // `w:author` and a `w:date`, the corresponding card surfaces that author
+    // and date. Criterion #2 already builds one card per comment carrying the
+    // body text, but the card-building JS reads only the body runs (`w:t`); it
+    // never reads the comment element's `w:author` / `w:date` attributes. This
+    // anchors on the same comment-parsing region as criterion #2 (between the
+    // `word/comments.xml` read and the math-formula fallback marker '数学公式')
+    // and asserts the JS in that region reads each comment's `w:author` and
+    // `w:date` attributes. Both substrings are absent from the current
+    // card-building JS, so the assertions are genuinely red first.
+    func test_buildDocxHTML_cardShowsAuthorAndDate() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        guard let commentsReadRange = html.range(of: "word/comments.xml") else {
+            XCTFail("Expected docx HTML to read the docx package's word/comments.xml")
+            return
+        }
+        guard let mathFallbackRange = html.range(of: "数学公式") else {
+            XCTFail("Expected docx HTML to contain the math-formula fallback marker '数学公式'")
+            return
+        }
+        let parsingRegion = String(html[commentsReadRange.upperBound..<mathFallbackRange.lowerBound])
+        XCTAssertTrue(
+            parsingRegion.contains("w:author"),
+            "Expected the comment-parsing JS to read each comment's w:author attribute so the card can show the author"
+        )
+        XCTAssertTrue(
+            parsingRegion.contains("w:date"),
+            "Expected the comment-parsing JS to read each comment's w:date attribute so the card can show the date"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
