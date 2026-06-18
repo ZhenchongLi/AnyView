@@ -522,6 +522,48 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #3 (issue #18): buildDocxHTML's output must contain a
+    // piece of JS that walks the docx-preview-rendered DOM, finds the
+    // comment-range boundary marker nodes (the comment nodes corresponding to
+    // commentRangeStart / commentRangeEnd), and wraps the body text between that
+    // marker pair into a highlight <span> carrying data-comment-id. docx-preview
+    // renders those markers as DOM comment nodes; the new JS walks #container with
+    // a NodeFilter.SHOW_COMMENT TreeWalker to find the pair and wraps the body
+    // between them in a <span data-comment-id="...">. This anchors on the normal
+    // render-path region (between the word/comments.xml read and the math-formula
+    // fallback marker '数学公式', following the established pattern) and asserts
+    // the JS in that region mentions both commentRangeStart and commentRangeEnd
+    // and builds a span carrying data-comment-id. All three substrings are absent
+    // from the current JS, so the assertions are genuinely red first.
+    func test_buildDocxHTML_wrapsCommentRangeInSpan() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        guard let commentsReadRange = html.range(of: "word/comments.xml") else {
+            XCTFail("Expected docx HTML to read the docx package's word/comments.xml")
+            return
+        }
+        guard let mathFallbackRange = html.range(of: "数学公式") else {
+            XCTFail("Expected docx HTML to contain the math-formula fallback marker '数学公式'")
+            return
+        }
+        let normalPathRegion = String(html[commentsReadRange.upperBound..<mathFallbackRange.lowerBound])
+        XCTAssertTrue(
+            normalPathRegion.contains("commentRangeStart"),
+            "Expected the normal-path JS to find the commentRangeStart boundary marker node so it knows where the annotated body range begins"
+        )
+        XCTAssertTrue(
+            normalPathRegion.contains("commentRangeEnd"),
+            "Expected the normal-path JS to find the commentRangeEnd boundary marker node so it knows where the annotated body range ends"
+        )
+        XCTAssertTrue(
+            normalPathRegion.contains("data-comment-id"),
+            "Expected the normal-path JS to wrap the body between the marker pair in a <span data-comment-id=\"...\"> so the annotated passage gets a visible highlight"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
