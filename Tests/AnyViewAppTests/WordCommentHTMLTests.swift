@@ -314,6 +314,47 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #2 (issue #16): the JS buildDocxHTML produces must,
+    // for each `w:comment` in `word/comments.xml`, append a card into the
+    // `.docx-comments-rail` carrying that comment's body text. Criterion #1
+    // already made the normal path read `word/comments.xml`, but the read JS
+    // does nothing with the file's contents yet — it never iterates `w:comment`
+    // nodes and never builds a card. This anchors on the comment-parsing region
+    // (between the `word/comments.xml` read and the math-formula fallback
+    // marker '数学公式'): in that region the JS must iterate over `w:comment`
+    // (substring `w:comment`), pull each comment's body text (substring `w:t`),
+    // and append a card into the rail (substring `docx-comments-rail` together
+    // with `appendChild`). The `w:comment` substring is absent from the current
+    // HTML, so the iteration assertion is genuinely red first.
+    func test_buildDocxHTML_appendsCardPerComment() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        guard let commentsReadRange = html.range(of: "word/comments.xml") else {
+            XCTFail("Expected docx HTML to read the docx package's word/comments.xml")
+            return
+        }
+        guard let mathFallbackRange = html.range(of: "数学公式") else {
+            XCTFail("Expected docx HTML to contain the math-formula fallback marker '数学公式'")
+            return
+        }
+        let parsingRegion = String(html[commentsReadRange.upperBound..<mathFallbackRange.lowerBound])
+        XCTAssertTrue(
+            parsingRegion.contains("w:comment"),
+            "Expected the comment-parsing JS (after reading word/comments.xml, before the math fallback) to iterate over each w:comment node"
+        )
+        XCTAssertTrue(
+            parsingRegion.contains("w:t"),
+            "Expected the comment-parsing JS to pull each comment's body text (w:t runs)"
+        )
+        XCTAssertTrue(
+            parsingRegion.contains("docx-comments-rail") && parsingRegion.contains("appendChild"),
+            "Expected the comment-parsing JS to append a card per comment into the .docx-comments-rail"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
