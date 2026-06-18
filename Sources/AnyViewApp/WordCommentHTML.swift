@@ -113,7 +113,15 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
                     document.body.appendChild(rail);
                 }
             }
+            var author = comment.getAttribute('w:author');
+            var date = comment.getAttribute('w:date');
             var card = document.createElement('div');
+            if (author || date) {
+                var meta = document.createElement('div');
+                meta.className = 'docx-comment-meta';
+                meta.textContent = [author, date].filter(Boolean).join(' · ');
+                card.appendChild(meta);
+            }
             var body = document.createElement('div');
             body.className = 'docx-comment-text';
             body.textContent = text;
