@@ -231,26 +231,43 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
     // highlightCommentRanges wraps each annotated body range in a
     // <span data-comment-id="..."> that now has a real offsetTop in the page.
     // Each card carries the same data-comment-id. For every card we find its
-    // paired span by id, read the span's offsetTop, and slide the card down to
-    // that height with transform: translateY(...) so the card lines up with the
-    // passage it comments on. Cards whose span is missing keep their natural
-    // position. Wrapped so a failure never breaks the page render.
+    // paired span by id and read the span's offsetTop, the height down the page
+    // the annotated passage sits. Cards whose span is missing keep their natural
+    // position.
+    //
+    // Two passages at nearly the same height would stack their cards on top of
+    // each other, so once every card has a target top we de-overlap them: sort
+    // the cards by target top, walk top to bottom, and remember the previous
+    // card's bottom edge (prevBottom = its top + its offsetHeight). When the
+    // current card's target top is < prevBottom the cards overlap, so the later
+    // card is pushed down to prevBottom to clear it. This is the plainest
+    // downward stacking, no force-directed layout. Then each card is slid to its
+    // resolved top with transform: translateY(...). Wrapped so a failure never
+    // breaks the page render.
     function positionCardsByHighlight(container) {
         try {
             var rail = document.querySelector('.docx-comments-rail');
             if (!rail) return;
             var cards = rail.querySelectorAll('[data-comment-id]');
+            var placed = [];
             for (var i = 0; i < cards.length; i++) {
                 var card = cards[i];
                 var id = card.getAttribute('data-comment-id');
                 var span = container.querySelector(
                     'span[data-comment-id="' + id + '"]');
                 if (!span) continue;
-                // offsetTop of the paired highlight span: how far down the page
-                // the annotated passage sits. Slide the card to match.
-                var target = span.offsetTop;
                 card.style.position = 'absolute';
-                card.style.transform = 'translateY(' + target + 'px)';
+                placed.push({ card: card, top: span.offsetTop });
+            }
+            // De-overlap top to bottom: a later card whose target top lands
+            // above the previous card's bottom edge gets pushed down to clear it.
+            placed.sort(function(a, b) { return a.top - b.top; });
+            var prevBottom = -Infinity;
+            for (var p = 0; p < placed.length; p++) {
+                var entry = placed[p];
+                var top = entry.top < prevBottom ? prevBottom : entry.top;
+                entry.card.style.transform = 'translateY(' + top + 'px)';
+                prevBottom = top + entry.card.offsetHeight;
             }
         } catch (e) {
             // Span missing or layout not ready: leave cards in natural order.
