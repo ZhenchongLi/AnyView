@@ -683,6 +683,50 @@ final class WordCommentHTMLTests: XCTestCase {
         )
     }
 
+    // Acceptance criterion #7 (issue #18): the card-positioning JS buildDocxHTML
+    // produces must, when several cards' computed tops land close together,
+    // de-overlap them by pushing each later card down. Criterion #4 positions
+    // each card at its paired span's offsetTop, but two passages sitting at
+    // nearly the same height would stack their cards on top of each other. The
+    // positioning pass must instead sort the cards by their target top, walk top
+    // to bottom, and remember the previous card's bottom edge; when the current
+    // card's computed top is smaller than that bottom edge the cards overlap, so
+    // the later card is pushed down to clear it. This anchors on the normal
+    // render-path region (between the word/comments.xml read and the math-formula
+    // fallback marker '数学公式', following the established pattern) and asserts
+    // the JS in that region sorts the cards by target top, tracks the previous
+    // card's bottom edge, and uses an overlap comparison (`<`) to push the later
+    // card down. The bottom-edge tracking is absent from the current positioning
+    // JS, so the assertions are genuinely red first.
+    func test_buildDocxHTML_stacksOverlappingCards() {
+        let html = buildDocxHTML(
+            base64: "UEsDBAoAAAAAAA==",
+            jszipScript: "/* stub jszip */",
+            docxPreviewScript: "/* stub docx-preview */"
+        )
+        guard let commentsReadRange = html.range(of: "word/comments.xml") else {
+            XCTFail("Expected docx HTML to read the docx package's word/comments.xml")
+            return
+        }
+        guard let mathFallbackRange = html.range(of: "数学公式") else {
+            XCTFail("Expected docx HTML to contain the math-formula fallback marker '数学公式'")
+            return
+        }
+        let normalPathRegion = String(html[commentsReadRange.upperBound..<mathFallbackRange.lowerBound])
+        XCTAssertTrue(
+            normalPathRegion.contains(".sort("),
+            "Expected the positioning JS to sort the cards by their target top before de-overlapping them top to bottom"
+        )
+        XCTAssertTrue(
+            normalPathRegion.contains("prevBottom"),
+            "Expected the positioning JS to track the previous card's bottom edge so it can detect overlap with the next card"
+        )
+        XCTAssertTrue(
+            normalPathRegion.contains("offsetHeight"),
+            "Expected the positioning JS to read each card's offsetHeight so it can compute the card's bottom edge and the next card's clear position"
+        )
+    }
+
     /// Locates `Sources/AnyViewApp/WebRenderer.swift` relative to this test file.
     private func webRendererSourceURL(file: StaticString = #filePath) -> URL {
         // .../Tests/AnyViewAppTests/WordCommentHTMLTests.swift -> repo root.
