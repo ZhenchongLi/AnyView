@@ -143,6 +143,61 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
             rail.appendChild(card);
         }
     }
+    // Wrap the annotated body range in a visible highlight span.
+    //
+    // docx-preview renders word/document.xml's commentRangeStart /
+    // commentRangeEnd markers as DOM comment nodes (<!-- ... -->) whose text
+    // carries 'commentRangeStart' / 'commentRangeEnd' plus the comment id. The
+    // CSS Custom Highlight API path docx-preview uses for the actual highlight
+    // needs Safari 17+ and is invisible on the minimum-supported macOS, so we
+    // find the marker pair ourselves and wrap the body between them in a
+    // <span data-comment-id="..."> that the shared CSS gives a visible
+    // background.
+    //
+    // A NodeFilter.SHOW_COMMENT TreeWalker over #container collects every
+    // comment node; for each id we pair its commentRangeStart marker with its
+    // commentRangeEnd marker and move the nodes between the pair into a span. If
+    // a marker pair is missing or malformed the body for that id is left as-is;
+    // the whole pass is wrapped so a failure never breaks the page render.
+    function highlightCommentRanges(container) {
+        try {
+            var walker = document.createTreeWalker(
+                container, NodeFilter.SHOW_COMMENT, null, false);
+            var starts = {};
+            var ends = {};
+            var node;
+            while ((node = walker.nextNode())) {
+                var data = node.nodeValue || '';
+                var m;
+                if ((m = /commentRangeStart[^0-9-]*(-?\\d+)/.exec(data))) {
+                    starts[m[1]] = node;
+                } else if ((m = /commentRangeEnd[^0-9-]*(-?\\d+)/.exec(data))) {
+                    ends[m[1]] = node;
+                }
+            }
+            for (var id in starts) {
+                var startMarker = starts[id];
+                var endMarker = ends[id];
+                if (!endMarker) continue;
+                var span = document.createElement('span');
+                span.setAttribute('data-comment-id', id);
+                var moved = [];
+                for (var n = startMarker.nextSibling;
+                     n && n !== endMarker;
+                     n = n.nextSibling) {
+                    moved.push(n);
+                }
+                if (moved.length === 0) continue;
+                startMarker.parentNode.insertBefore(span, startMarker.nextSibling);
+                for (var k = 0; k < moved.length; k++) {
+                    span.appendChild(moved[k]);
+                }
+            }
+        } catch (e) {
+            // Markers missing or docx-preview changed shape: render the body
+            // without highlight rather than break the whole page.
+        }
+    }
     (async function() {
         var status = document.getElementById('status');
         var container = document.getElementById('container');
@@ -162,6 +217,7 @@ func buildDocxHTML(base64: String, jszipScript: String, docxPreviewScript: Strin
             await docx.renderAsync(new Blob([bytes], { type: MIME }), container, null, opts);
             moveCommentNodesToRail(container);
             await renderCommentsFromZip(bytes);
+            highlightCommentRanges(container);
             status.textContent = '';
         } catch (e1) {
             // Retry after stripping OMML math (common pandoc-generated docx issue)
