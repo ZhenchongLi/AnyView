@@ -17,7 +17,7 @@ private class AnyViewWebView: WKWebView {
 
 /// Renders documents using WKWebView.
 /// Handles docx, docmod, doct, html, markdown, and code files.
-class WebRenderer: NSObject, ViewerRenderer, SupportsFind, SupportsFidelity, WKNavigationDelegate {
+class WebRenderer: NSObject, ViewerRenderer, SupportsFind, SupportsFidelity, SupportsPrint, WKNavigationDelegate {
     static let docExtensions: Set<String> = ["docmod", "doct", "docx"]
     static let xlsxExtensions: Set<String> = ["xlsx", "xls"]
     static let htmlExtensions: Set<String> = ["html", "htm"]
@@ -539,6 +539,27 @@ class WebRenderer: NSObject, ViewerRenderer, SupportsFind, SupportsFidelity, WKN
         }
         NSWorkspace.shared.open(url)
         decisionHandler(.cancel)
+    }
+
+    // MARK: - Print
+
+    var canPrint: Bool {
+        if texShowingPdf || fidelityShowingPdf {
+            return pdfView.document != nil
+        }
+        return currentFilePath != nil
+    }
+
+    func runPrint(attachedTo window: NSWindow?) {
+        if (texShowingPdf || fidelityShowingPdf), let doc = pdfView.document {
+            PrintHelpers.printPDFDocument(doc,
+                                          jobTitle: PrintHelpers.jobTitle(for: currentFilePath),
+                                          attachedTo: window)
+            return
+        }
+        let op = webView.printOperation(with: PrintHelpers.makePrintInfo())
+        op.jobTitle = PrintHelpers.jobTitle(for: currentFilePath)
+        PrintHelpers.run(op, attachedTo: window)
     }
 
     // MARK: - Cleanup

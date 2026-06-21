@@ -11,3 +11,4 @@ linux/target/
 
 # Local agent session state
 .claude/
+.dispatcher-state.json

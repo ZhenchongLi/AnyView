@@ -21,6 +21,15 @@ protocol SupportsFind: AnyObject {
     func performFind(query: String, forward: Bool, completion: @escaping (Bool) -> Void)
 }
 
+/// Renderers that can show the system print panel for the currently displayed content.
+protocol SupportsPrint: AnyObject {
+    /// Whether the renderer currently has something printable. May vary with mode (e.g. fidelity).
+    var canPrint: Bool { get }
+
+    /// Show the print panel. Attaches as a sheet to `window` when possible.
+    func runPrint(attachedTo window: NSWindow?)
+}
+
 /// Errors surfaced by fidelity (LibreOffice → PDF) conversion.
 enum FidelityError: LocalizedError {
     case sofficeNotFound

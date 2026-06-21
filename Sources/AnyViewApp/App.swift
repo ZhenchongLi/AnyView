@@ -39,6 +39,8 @@ struct AnyViewApp {
         fileMenuItem.submenu = fileMenu
         fileMenu.addItem(withTitle: "Open…", action: #selector(AppDelegate.openDocument(_:)), keyEquivalent: "o")
         fileMenu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        fileMenu.addItem(.separator())
+        fileMenu.addItem(withTitle: "Print…", action: #selector(AppDelegate.printDocument(_:)), keyEquivalent: "p")
 
         // Edit menu — routes ⌘C/⌘A/⌘X/⌘V to first responder (WKWebView)
         let editMenuItem = NSMenuItem()

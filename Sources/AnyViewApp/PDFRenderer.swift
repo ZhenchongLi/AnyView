@@ -2,7 +2,7 @@ import Cocoa
 import PDFKit
 
 /// Renders PDF files using macOS native PDFView.
-class PDFRenderer: ViewerRenderer, SupportsFind {
+class PDFRenderer: ViewerRenderer, SupportsFind, SupportsPrint {
     static let supportedExtensions: Set<String> = ["pdf"]
 
     private let pdfView: PDFView
@@ -36,6 +36,15 @@ class PDFRenderer: ViewerRenderer, SupportsFind {
 
     func setZoom(_ level: CGFloat) {
         pdfView.scaleFactor = level
+    }
+
+    var canPrint: Bool { pdfView.document != nil }
+
+    func runPrint(attachedTo window: NSWindow?) {
+        guard let doc = pdfView.document else { return }
+        PrintHelpers.printPDFDocument(doc,
+                                      jobTitle: PrintHelpers.jobTitle(for: doc.documentURL?.path),
+                                      attachedTo: window)
     }
 
     func performFind(query: String, forward: Bool, completion: @escaping (Bool) -> Void) {
