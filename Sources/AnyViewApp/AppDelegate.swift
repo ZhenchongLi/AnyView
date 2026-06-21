@@ -78,6 +78,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     @objc func findNext(_ sender: Any?) { activeController()?.findNext(sender) }
     @objc func findPrevious(_ sender: Any?) { activeController()?.findPrevious(sender) }
 
+    // MARK: - Print
+
+    @objc func printDocument(_ sender: Any?) { activeController()?.printDocument(sender) }
+
     private func activeController() -> ViewerWindowController? {
         guard let key = NSApp.keyWindow else { return nil }
         return windows.first { $0.window === key }
@@ -100,6 +104,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
            menuItem.action == #selector(findNext(_:)) ||
            menuItem.action == #selector(findPrevious(_:)) {
             return activeController()?.supportsFind == true
+        }
+        if menuItem.action == #selector(printDocument(_:)) {
+            return activeController()?.canPrint == true
         }
         return true
     }

@@ -1,7 +1,7 @@
 import Cocoa
 
 /// Renders image files using macOS native NSImageView.
-class ImageRenderer: ViewerRenderer {
+class ImageRenderer: ViewerRenderer, SupportsPrint {
     static let supportedExtensions: Set<String> = [
         "png", "jpg", "jpeg", "gif", "webp", "tiff", "tif", "bmp", "ico", "heic", "heif", "svg",
     ]
@@ -53,5 +53,16 @@ class ImageRenderer: ViewerRenderer {
         let size = image.size
         let scaled = NSSize(width: size.width * level, height: size.height * level)
         imageView.frame = NSRect(origin: .zero, size: scaled)
+    }
+
+    var canPrint: Bool { imageView.image != nil }
+
+    func runPrint(attachedTo window: NSWindow?) {
+        guard let image = imageView.image else { return }
+        let printView = ImagePrintView(image: image)
+        let op = NSPrintOperation(view: printView,
+                                  printInfo: PrintHelpers.makePrintInfo(scaleToFit: true))
+        op.jobTitle = "Image"
+        PrintHelpers.run(op, attachedTo: window)
     }
 }

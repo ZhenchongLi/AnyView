@@ -5,7 +5,7 @@ import Quartz
 /// Renders files using macOS native Quick Look preview.
 /// Handles pptx, xlsx, keynote, numbers, and other Quick Look-supported formats.
 /// For pptx/ppt, also supports a fidelity (LibreOffice → PDF) toggle.
-class QuickLookRenderer: ViewerRenderer, SupportsFidelity {
+class QuickLookRenderer: ViewerRenderer, SupportsFidelity, SupportsPrint {
     static let supportedExtensions: Set<String> = [
         // Office / iWork (xlsx/xls now in WebRenderer via SheetJS)
         "pptx", "ppt",
@@ -188,6 +188,20 @@ class QuickLookRenderer: ViewerRenderer, SupportsFidelity {
         pdfView.scaleFactor = zoomLevel
         previewView.isHidden = true
         pdfView.isHidden = false
+    }
+
+    // MARK: - SupportsPrint
+
+    /// Only printable when fidelity (LibreOffice → PDF) mode is active. QLPreviewView
+    /// doesn't paginate, so we don't try to print the QL preview directly — users
+    /// should toggle fidelity for a real multi-page printout.
+    var canPrint: Bool { fidelityShowingPdf && pdfView.document != nil }
+
+    func runPrint(attachedTo window: NSWindow?) {
+        guard fidelityShowingPdf, let doc = pdfView.document else { return }
+        PrintHelpers.printPDFDocument(doc,
+                                      jobTitle: PrintHelpers.jobTitle(for: currentFilePath),
+                                      attachedTo: window)
     }
 
     private func showOverlay(_ message: String) {

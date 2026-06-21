@@ -381,6 +381,13 @@ class ViewerWindowController: NSObject, NSWindowDelegate, NSToolbarDelegate {
 
     var supportsFind: Bool { renderer is SupportsFind }
 
+    var canPrint: Bool { (renderer as? SupportsPrint)?.canPrint == true }
+
+    @objc func printDocument(_ sender: Any?) {
+        guard let printer = renderer as? SupportsPrint, printer.canPrint else { return }
+        printer.runPrint(attachedTo: window)
+    }
+
     private func showFindBar() {
         guard let container = rendererContainer, let parent = container.superview else { return }
 
