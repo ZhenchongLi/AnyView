@@ -161,6 +161,35 @@ test('test_mixed_document_keeps_h1_ul_table_p', function() {
         'plain paragraph must render to <p>: ' + out);
 });
 
+test('test_inline_code_escapes_html_tags', function() {
+    // Inline code spans whose content is HTML (common in docs about markup)
+    // must be escaped, otherwise raw block tags like <p> leak into the DOM,
+    // get hoisted out of surrounding table cells and shred the layout.
+    const out = md('Use `<p data-id="p3">x</p>` here.');
+    assert.ok(
+        out.indexOf('<code>&lt;p data-id="p3"&gt;x&lt;/p&gt;</code>') !== -1,
+        'inline code content must be HTML-escaped: ' + out
+    );
+    assert.ok(
+        out.indexOf('<code><p') === -1,
+        'raw block tag must not leak out of inline code: ' + out
+    );
+});
+
+test('test_table_cell_with_html_code_stays_intact', function() {
+    // A table cell containing an HTML snippet in inline code must keep the
+    // table well-formed: no raw <p>/<td> tags injected from the cell content.
+    const input = [
+        '| 能力 | 写法 |',
+        '|---|---|',
+        '| 替换 | `<p data-id="p3">新文本</p>` |'
+    ].join('\n');
+    const out = md(input);
+    assert.ok(out.indexOf('<table>') !== -1, 'table must render: ' + out);
+    assert.ok(out.indexOf('<code><p') === -1,
+        'cell HTML must be escaped, not leaked: ' + out);
+});
+
 console.log('');
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed === 0 ? 0 : 1);

@@ -39,7 +39,7 @@ function md(s) {
     s = s.replace(/\*\*\*(.+?)\*\*\*/g, '<b><i>$1</i></b>');
     s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
     s = s.replace(/\*(.+?)\*/g, '<i>$1</i>');
-    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+    s = s.replace(/`([^`]+)`/g, function(_, code) { return '<code>' + esc(code) + '</code>'; });
     s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2">');
     s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
     s = s.replace(/^[\-\*]\s+(.*)$/gm, '<li>$1</li>');
