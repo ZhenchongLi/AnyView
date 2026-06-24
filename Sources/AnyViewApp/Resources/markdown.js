@@ -47,12 +47,17 @@ function md(s) {
     s = s.replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>');
     // CommonMark paragraph rule: a single newline within a paragraph is a space,
     // not a line break. Join consecutive plain-text lines before <p>-wrapping.
+    // Only block-level tags (headings, ul/li, table, hr, div, pre) act as
+    // paragraph boundaries; inline tags (<a>, <code>, <b>, <i>, <img>) do not.
+    function isBlockTag(line) {
+        return /^<(?:h[1-6]|ul|li|table|thead|tbody|tr|th|td|blockquote|hr|div|pre)\b/i.test(line);
+    }
     s = s.split(/\n\n+/).map(function(block) {
         var lines = block.split('\n');
         var out = [];
         for (var i = 0; i < lines.length; i++) {
             var line = lines[i];
-            if (out.length && line && !line.startsWith('<') && !out[out.length - 1].startsWith('<')) {
+            if (out.length && line && !isBlockTag(line) && !isBlockTag(out[out.length - 1])) {
                 out[out.length - 1] += ' ' + line;
             } else {
                 out.push(line);
