@@ -45,6 +45,21 @@ function md(s) {
     s = s.replace(/^[\-\*]\s+(.*)$/gm, '<li>$1</li>');
     s = s.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
     s = s.replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>');
+    // CommonMark paragraph rule: a single newline within a paragraph is a space,
+    // not a line break. Join consecutive plain-text lines before <p>-wrapping.
+    s = s.split(/\n\n+/).map(function(block) {
+        var lines = block.split('\n');
+        var out = [];
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+            if (out.length && line && !line.startsWith('<') && !out[out.length - 1].startsWith('<')) {
+                out[out.length - 1] += ' ' + line;
+            } else {
+                out.push(line);
+            }
+        }
+        return out.join('\n');
+    }).join('\n\n');
     s = s.replace(/^(?!<[hupoltbd]|<li|<bl|<hr|<im|<a )(.+)$/gm, '<p>$1</p>');
     s = s.replace(/<\/blockquote>\n<blockquote>/g, '<br>');
     s = s.replace(/<div data-mermaid-placeholder="(\d+)"><\/div>/g, function(_, idx) {
