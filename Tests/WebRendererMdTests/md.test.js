@@ -101,6 +101,27 @@ test('test_soft_wrapped_paragraph_lines_join_as_space', function() {
     );
 });
 
+test('test_soft_wrap_joins_line_starting_with_inline_tag', function() {
+    // A paragraph line that starts with an inline element (<a>, <code>) after
+    // inline processing must still be joined with the preceding line.
+    // Regression: the original fix treated any "<"-starting line as a block boundary.
+    const input = 'Visit [example](http://example.com) and serves as\nthe barrier.';
+    const out = md(input);
+    assert.ok(
+        !/<p>the barrier\.?<\/p>/.test(out),
+        'line starting with plain text after a link line must join: ' + out
+    );
+    // paragraph starting mid-line with a link followed by continuation
+    const input2 = 'Prefix text\n[link](http://x.com) continuation text';
+    const out2 = md(input2);
+    assert.ok(
+        out2.indexOf('Prefix text') !== -1 && out2.indexOf('continuation text') !== -1,
+        'link-starting continuation line must join: ' + out2
+    );
+    const count2 = (out2.match(/<p>/g) || []).length;
+    assert.strictEqual(count2, 1, 'must produce exactly one <p>: ' + out2);
+});
+
 test('test_soft_wrap_does_not_merge_across_block_elements', function() {
     // A plain-text line must not be joined with an adjacent heading or list.
     const input = '# Heading\n\nParagraph line one\nparagraph line two.\n\n- item';
