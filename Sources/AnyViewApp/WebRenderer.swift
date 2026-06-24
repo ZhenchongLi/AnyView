@@ -18,6 +18,22 @@ private class AnyViewWebView: WKWebView {
 /// Renders documents using WKWebView.
 /// Handles docx, docmod, doct, html, markdown, and code files.
 class WebRenderer: NSObject, ViewerRenderer, SupportsFind, SupportsFidelity, SupportsPrint, WKNavigationDelegate {
+    /// Escapes a string for safe embedding inside a JS template literal that itself
+    /// lives in an inline `<script>` block.
+    ///
+    /// Order matters: double real backslashes first, then add the template-literal
+    /// escapes (backtick, `$`). The final `</` -> `<\/` step breaks any literal
+    /// `</script>` in the content so the HTML tokenizer doesn't close the surrounding
+    /// `<script>` block early and dump the rest of the script as visible body text.
+    /// It is added last so the backslash-doubling step above doesn't escape it; in JS
+    /// `"<\/script>"` still evaluates to `"</script>"`, so `textContent` stays exact.
+    static func escapeForScript(_ s: String) -> String {
+        s.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "`", with: "\\`")
+            .replacingOccurrences(of: "$", with: "\\$")
+            .replacingOccurrences(of: "</", with: "<\\/")
+    }
+
     static let docExtensions: Set<String> = ["docmod", "doct", "docx"]
     static let xlsxExtensions: Set<String> = ["xlsx", "xls"]
     static let htmlExtensions: Set<String> = ["html", "htm"]
@@ -698,14 +714,8 @@ class WebRenderer: NSObject, ViewerRenderer, SupportsFind, SupportsFidelity, Sup
         let baseDir = URL(fileURLWithPath: filePath).deletingLastPathComponent()
         let content = inlineLocalImages(in: raw, baseDir: baseDir)
 
-        let jsEscaped = content
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "`", with: "\\`")
-            .replacingOccurrences(of: "$", with: "\\$")
-        let jsEscapedSource = raw
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "`", with: "\\`")
-            .replacingOccurrences(of: "$", with: "\\$")
+        let jsEscaped = Self.escapeForScript(content)
+        let jsEscapedSource = Self.escapeForScript(raw)
 
         let mermaidInline = content.contains("```mermaid")
             ? "<script>\(Self.mermaidScript)</script>"

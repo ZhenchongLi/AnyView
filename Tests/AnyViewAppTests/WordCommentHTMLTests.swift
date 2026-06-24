@@ -6,6 +6,26 @@ final class WordCommentHTMLTests: XCTestCase {
         XCTAssertEqual(1, 1)
     }
 
+    func test_escapeForScript_breaksLiteralClosingScriptTag() {
+        // Markdown/HTML content that contains a literal </script> must not close the
+        // inline <script> block it gets embedded in. After escaping, the HTML
+        // tokenizer must not see "</script", but the JS value must still decode back
+        // to the original (\/ is just / in a JS string).
+        let input = "before <script type=\"x\">y</script> after"
+        let escaped = WebRenderer.escapeForScript(input)
+        XCTAssertFalse(escaped.contains("</script"),
+            "escaped content must not contain a raw </script: \(escaped)")
+        XCTAssertTrue(escaped.contains("<\\/script>"),
+            "closing tag must be broken as <\\/script>: \(escaped)")
+    }
+
+    func test_escapeForScript_preservesTemplateLiteralSafety() {
+        // Backticks, backslashes and ${ must all be neutralized so the value can sit
+        // inside a `...` template literal without terminating it or interpolating.
+        let escaped = WebRenderer.escapeForScript("a `b` \\c ${d}")
+        XCTAssertEqual(escaped, "a \\`b\\` \\\\c \\${d}")
+    }
+
     func test_buildDocxHTML_isCallableStandalone() {
         let html = buildDocxHTML(
             base64: "UEsDBAoAAAAAAA==",
