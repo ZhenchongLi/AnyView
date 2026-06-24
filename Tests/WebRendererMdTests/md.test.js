@@ -82,6 +82,37 @@ test('test_code_block_content_has_no_injected_tags', function() {
     );
 });
 
+test('test_soft_wrapped_paragraph_lines_join_as_space', function() {
+    // CommonMark: a single newline inside a paragraph is a space, not a <br>.
+    // Multi-line paragraphs from source files wrapped at ~80 chars must reflow.
+    const input = 'First line of paragraph\nsecond line of paragraph\nthird line.\n\nNew paragraph.';
+    const out = md(input);
+    assert.ok(
+        out.indexOf('<p>First line of paragraph second line of paragraph third line.</p>') !== -1,
+        'soft-wrapped lines must join into one <p>: ' + out
+    );
+    assert.ok(
+        out.indexOf('<p>New paragraph.</p>') !== -1,
+        'blank-line-separated paragraph must remain separate: ' + out
+    );
+    assert.ok(
+        out.indexOf('<p>second line') === -1,
+        'second line must not become its own <p>: ' + out
+    );
+});
+
+test('test_soft_wrap_does_not_merge_across_block_elements', function() {
+    // A plain-text line must not be joined with an adjacent heading or list.
+    const input = '# Heading\n\nParagraph line one\nparagraph line two.\n\n- item';
+    const out = md(input);
+    assert.ok(out.indexOf('<h1>Heading</h1>') !== -1, 'heading must survive: ' + out);
+    assert.ok(
+        out.indexOf('<p>Paragraph line one paragraph line two.</p>') !== -1,
+        'paragraph lines must join: ' + out
+    );
+    assert.ok(/<li>item<\/li>/.test(out), 'list item must survive: ' + out);
+});
+
 test('test_mixed_document_keeps_h1_ul_table_p', function() {
     // A document mixing a heading, an unordered list, a table and a plain
     // paragraph must still render each element to its own block: the
