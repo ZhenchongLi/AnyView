@@ -16,6 +16,13 @@ func buildCodeHTML(
 ) -> String {
     let langClass = lang.isEmpty ? "" : "language-\(lang)"
     let highlightInline = highlightScript.isEmpty ? "" : "<script>\(highlightScript)</script>"
+    // Inject the Erlang grammar only for Erlang sources, after highlightInline so
+    // hljs is already loaded before the grammar registers itself (mirrors how
+    // loadTexFile injects latexGrammar after highlightInline). The core
+    // highlight.min.js build ships without Erlang, so .erl files need it appended.
+    let erlangGrammar = (lang == "erlang" && !erlangGrammarScript.isEmpty)
+        ? "<script>\(erlangGrammarScript)</script>"
+        : ""
 
     return """
     <!DOCTYPE html>
@@ -62,6 +69,7 @@ func buildCodeHTML(
         }
     </style>
     \(highlightInline)
+    \(erlangGrammar)
     </head>
     <body>
     <div class="header">\(lineCount) lines · \(escapedFilename)</div>
