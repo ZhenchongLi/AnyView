@@ -127,6 +127,14 @@ class WebRenderer: NSObject, ViewerRenderer, SupportsFind, SupportsFidelity, Sup
         return content
     }()
 
+    static let hljsErlangScript: String = {
+        guard let url = Bundle.module.url(forResource: "hljs-erlang", withExtension: "js"),
+              let content = try? String(contentsOf: url, encoding: .utf8) else {
+            return ""
+        }
+        return content
+    }()
+
     // Single source of truth for the markdown -> HTML renderer (md()/esc()).
     // Shared with the node test suite (Tests/WebRendererMdTests/md.test.js).
     static let markdownScript: String = {
