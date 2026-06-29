@@ -15,6 +15,8 @@ AnyView is a native document viewer for macOS and Linux that opens arbitrary fil
 # macOS
 swift build                    # debug build
 swift build -c release         # release build
+swift test                     # XCTest coverage for renderer helpers and UI plumbing
+node Tests/WebRendererMdTests/md.test.js  # markdown renderer unit tests
 ./build-app.sh                 # build .build/AnyView.app (debug by default, or: ./build-app.sh release)
 open .build/AnyView.app        # launch
 
@@ -27,7 +29,7 @@ cargo build --release
 anyview <file>                 # launch installed app
 ```
 
-There is no Swift test target, so `swift test` will fail. Linux currently verifies with `cargo check` plus manual launch/open checks. Manual verification should open real sample files of each supported extension and confirm they render.
+Swift tests live under `Tests/AnyViewAppTests/`. The extracted JavaScript markdown renderer has a direct Node test at `Tests/WebRendererMdTests/md.test.js`; there is no `package.json` wrapper. Linux currently verifies with `cargo check` plus manual launch/open checks. Manual verification should open real sample files of each supported extension and confirm they render.
 
 `build-app.sh` bundles the `docmod` CLI into `Contents/MacOS/` if found (checks `$DOCMOD_PATH`, `~/.local/bin/docmod`, `~/.docmod/bin/docmod`, `PATH`). The app still builds without it; `.docx`/`.docmod`/`.doct` rendering just won't work.
 
@@ -41,12 +43,14 @@ The macOS core abstraction is the **`ViewerRenderer` protocol** (`Sources/AnyVie
 |---|---|---|
 | `PDFRenderer` | PDFKit | pdf |
 | `ImageRenderer` | NSImageView | png/jpg/gif/webp/tiff/bmp/ico/heic/svg |
-| `QuickLookRenderer` | QLPreviewView | Office/iWork/audio/video/3D/fonts/vcf/ics — anything macOS QuickLook handles |
-| `WebRenderer` | WKWebView | docx/docmod/doct (via `docmod` CLI), html, markdown (highlight.js + mermaid), 60+ code languages, data/config formats |
+| `QuickLookRenderer` | QLPreviewView, optional LibreOffice PDF fidelity | pptx/ppt, iWork packages, audio/video, 3D, fonts, vcf/ics — anything macOS QuickLook handles |
+| `WebRenderer` | WKWebView | docx/docmod/doct, xlsx/xls, html, markdown (highlight.js + mermaid), tex, subtitles, WebKit/ffmpeg video paths, 60+ code languages, data/config formats |
 
 `RendererFactory.renderer(for:)` dispatches by extension, falling back to `WebRenderer`. `RendererFactory.allSupportedExtensions` is the union used for the Open panel's allowed types and for rejecting unsupported extensions in `AppDelegate.openDocument(at:)`.
 
-The Linux app mirrors that shape under `linux/src/` with a `Renderer` trait and `RendererFactory`. Current Linux renderers include PDF, image, media, Office, and Web renderers. The Web renderer handles Markdown/code/data, docx/docmod/doct, spreadsheets, iWork preview packages, fonts, vCard/calendar, and lightweight 3D previews. LibreOffice, ffmpeg, tectonic, and docmod are optional helper tools for higher-fidelity paths.
+Optional renderer capabilities are modeled as small protocols/trait methods: find, print, and LibreOffice-backed fidelity mode. Keep those capability checks at the controller/toolbar boundary instead of branching on concrete renderer types.
+
+The Linux app mirrors that shape under `linux/src/` with a `Renderer` trait and `RendererFactory`. Current Linux renderers include PDF, image, media, Office, and Web renderers. The Web renderer handles Markdown/code/data, docx/docmod/doct, spreadsheets, iWork preview packages, fonts, vCard/calendar, lightweight 3D previews, subtitles, LaTeX, and extra video formats. LibreOffice, ffmpeg, tectonic, and docmod are optional helper tools for higher-fidelity paths.
 
 **Adding a format is usually one renderer plus metadata work**: add the extension to the appropriate renderer's supported extension list. If the format needs filesystem/app-launch awareness, update macOS `Sources/AnyViewApp/Info.plist` and Linux `linux/data/anyview.desktop` / `linux/data/anyview.xml`. `QuickLookRenderer` is the preferred macOS landing spot when macOS already previews the format natively.
 
@@ -54,7 +58,8 @@ The Linux app mirrors that shape under `linux/src/` with a `Renderer` trait and 
 
 `WebRenderer` is the only renderer with meaningful complexity:
 - `.docx`/`.docmod`/`.doct` are rendered by shelling out to the `docmod` CLI (`DocmodCLI.swift`). `DocmodCLI.findDocmod()` searches the app bundle's MacOS dir first, then `~/.local/bin`, `~/.docmod/bin`, `$DOCMOD_PATH`, `which`, and common install paths.
-- Markdown/code use `highlight.min.js` and `mermaid.min.js` loaded from `Bundle.module` (SPM resource bundle under `Sources/AnyViewApp/Resources/`).
+- Markdown/code use `highlight.min.js`, `mermaid.min.js`, and the shared `markdown.js` renderer loaded from `Bundle.module` (SPM resource bundle under `Sources/AnyViewApp/Resources/`). Keep markdown behavior changes covered by both Swift integration where relevant and `node Tests/WebRendererMdTests/md.test.js`.
+- Spreadsheet previews use bundled SheetJS (`xlsx.full.min.js`); `.docx` preview uses bundled `docx-preview` + `jszip`.
 - Any zip-based formats use `ZipExtractor` (shells out to `/usr/bin/unzip` into a per-instance temp dir that is cleaned up on `cleanup()` / `deinit`). If you add a new zip-based format, wire its temp dir through the existing `tempDir` lock so reload cleanup still works.
 
 `AppDelegate` is the single entry point for opening files: file-picker, drag-and-drop, and double-click all funnel through `openDocument(at:)`, which deduplicates already-open paths and activates the existing window instead of re-opening.
